@@ -1,0 +1,42 @@
+{% extends "surname/base.html" %}
+{% block title %}项目资料 | 氏源{% endblock %}
+{% block content %}
+<h1>项目资料</h1>
+<div class="panel">
+    <p>氏源是一个数据库课程团队项目：以姓氏为核心，组织姓氏起源、文化、人口分布、历代名人和迁徙路径，并通过地图、词云、关系图和时间轴做可视化。</p>
+    <p>本仓库是课程结束后的整理版：保留完整 Django 后端、模板、静态资源和演示数据，并修复了原项目中的硬编码密钥、明文密码比较和外部图片依赖。完整原始数据（300+ 姓氏）没有提交，仓库里只放李、王、张、丁四个示例姓氏。</p>
+</div>
+
+<h2>技术栈</h2>
+<div class="panel">
+    <span class="tag">Django 5.2</span>
+    <span class="tag">SQLite / MySQL</span>
+    <span class="tag">ECharts</span>
+    <span class="tag">pyecharts</span>
+    <span class="tag">HTML / CSS / Vue</span>
+    <span class="tag">Python 3</span>
+</div>
+
+<h2>数据模型</h2>
+<div class="panel">
+    <table>
+        <tr><th>表</th><th>作用</th></tr>
+        <tr><td>surname</td><td>姓氏基本信息、起源、文化、迁徙、人口分布文本</td></tr>
+        <tr><td>province</td><td>省份维度</td></tr>
+        <tr><td>dynasty</td><td>朝代及起止时间</td></tr>
+        <tr><td>distribution</td><td>姓氏 × 省份的人口比例</td></tr>
+        <tr><td>famous</td><td>姓氏 × 朝代的历史名人</td></tr>
+        <tr><td>user / comment</td><td>用户注册登录与评论</td></tr>
+    </table>
+</div>
+
+<h2>主要功能</h2>
+<div class="panel">
+    <ul>
+        <li>用户注册、登录、个人中心</li>
+        <li>按姓氏搜索与热门姓氏推荐</li>
+        <li>人口分布地图、历代名人朝代树、词云、姓氏关系图、迁徙路径</li>
+        <li>评论增删改查（课程原型；接口使用 GET，生产环境应改为 POST + CSRF）</li>
+    </ul>
+</div>
+{% endblock %}

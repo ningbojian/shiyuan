@@ -1,0 +1,12 @@
+{% extends "surname/base.html" %}
+{% block title %}网页介绍 | 氏源{% endblock %}
+{% block content %}
+<h1>网页介绍</h1>
+<div class="panel">
+    <p>氏源把姓氏资料组织成可检索、可比较、可追踪的数据：一边是姓氏文本（起源、文化、人口分布、迁徙传播），一边是可视化（地图、词云、关系图、名人树和时间轴）。</p>
+    <p>你可以从姓氏搜索开始，查看示例姓氏“李”“王”“张”“丁”的详情；也可以在个人中心体验课程项目的评论功能。</p>
+</div>
+<div class="panel">
+    <p><a href="{% url 'surname:search' %}">开始搜索姓氏 →</a></p>
+</div>
+{% endblock %}

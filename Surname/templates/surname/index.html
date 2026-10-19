@@ -1,0 +1,145 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ surname.second_name }}姓 | 氏源</title>
+    <style>
+        :root { --ink:#3f4438; --muted:#7c7765; --paper:#f7f4ec; --line:#ded7c6; --accent:#9b6f45; }
+        * { box-sizing: border-box; }
+        body { margin:0; font-family:"Microsoft YaHei","PingFang SC",sans-serif; color:var(--ink); background:var(--paper); }
+        header { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:16px 5vw; border-bottom:1px solid var(--line); background:#fffdf7; }
+        .brand { display:flex; align-items:center; gap:10px; font-size:22px; font-weight:700; color:var(--ink); text-decoration:none; }
+        .brand img { width:36px; height:36px; object-fit:cover; border-radius:50%; border:1px solid var(--line); }
+        nav { display:flex; flex-wrap:wrap; gap:16px; font-size:14px; }
+        nav a { color:var(--muted); text-decoration:none; }
+        nav a:hover { color:var(--accent); }
+        main { max-width:1180px; margin:0 auto; padding:28px 22px 60px; }
+        .title-row { display:flex; align-items:flex-end; gap:16px; flex-wrap:wrap; margin:8px 0 20px; }
+        h1 { font-size:40px; margin:0; letter-spacing:2px; }
+        .badge { color:var(--muted); font-size:14px; border:1px solid var(--line); border-radius:999px; padding:5px 12px; background:#fff; }
+        .grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+        .card { background:#fffdf8; border:1px solid var(--line); border-radius:12px; padding:18px 20px; min-width:0; }
+        .card.wide { grid-column:1 / -1; }
+        .card h2 { margin:0 0 12px; font-size:18px; color:var(--accent); }
+        .card p, .card div { line-height:1.85; color:var(--muted); font-size:14px; }
+        .card b { color:var(--ink); }
+        .chart { width:100%; height:430px; }
+        .chart.tall { height:520px; }
+        .dynasty-tree details { border-bottom:1px dashed var(--line); padding:8px 0; }
+        .dynasty-tree details:last-child { border-bottom:0; }
+        .dynasty-tree summary { cursor:pointer; color:var(--ink); font-size:15px; }
+        .dynasty-tree summary span { color:var(--muted); font-size:12px; margin-left:8px; }
+        .dynasty-tree ul { margin:8px 0 0 18px; padding:0; color:var(--muted); }
+        .route { min-height:80px; overflow:auto; }
+        .muted { color:var(--muted); font-size:13px; }
+        footer { text-align:center; color:var(--muted); font-size:12px; padding:20px 0 30px; border-top:1px solid var(--line); }
+        @media (max-width:850px) { .grid { grid-template-columns:1fr; } .card.wide { grid-column:auto; } h1 { font-size:32px; } }
+    </style>
+</head>
+<body>
+<header>
+    <a class="brand" href="{% url 'user:index' %}"><img src="{% static 'Surname/img/logo.jpg' %}" alt="氏源">氏源</a>
+    <nav>
+        <a href="{% url 'user:index' %}">首页</a>
+        <a href="{% url 'surname:search' %}">姓氏搜索</a>
+        <a href="{% url 'surname:science' %}">姓氏科普</a>
+        <a href="{% url 'surname:information' %}">姓氏资料</a>
+        <a href="{% url 'user:log' %}">登录</a>
+    </nav>
+</header>
+
+<main>
+    <div class="title-row">
+        <h1>{{ surname.second_name }}姓</h1>
+        <span class="badge">Django · ECharts · 数据可视化</span>
+    </div>
+
+    <div class="grid">
+        <section class="card">
+            <h2>姓氏基本信息</h2>
+            <div>{{ surname.base_information|linebreaks }}</div>
+        </section>
+
+        <section class="card">
+            <h2>人口分布</h2>
+            <div id="mymap" class="chart"></div>
+        </section>
+
+        <section class="card">
+            <h2>姓氏起源</h2>
+            <div>{{ surname.ori|safe }}</div>
+        </section>
+
+        <section class="card">
+            <h2>历代名人（按朝代）</h2>
+            <div class="dynasty-tree">
+                {% for dynasty in treeData %}
+                    {% if dynasty.value %}
+                    <details open>
+                        <summary>{{ dynasty.name }} <span>{{ dynasty.value }} 人</span></summary>
+                        <ul>
+                            {% for person in dynasty.children %}
+                            <li>{{ person.name }}</li>
+                            {% endfor %}
+                        </ul>
+                    </details>
+                    {% endif %}
+                {% empty %}
+                    <p>暂无名人数据。</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>姓氏词云</h2>
+            <div id="mywordcloud" class="chart"></div>
+        </section>
+
+        <section class="card">
+            <h2>姓氏关系图</h2>
+            <div id="mynet" class="chart"></div>
+        </section>
+
+        <section class="card wide">
+            <h2>迁徙传播</h2>
+            <div>{{ surname.mig|linebreaks }}</div>
+        </section>
+
+        <section class="card wide">
+            <h2>姓氏文化</h2>
+            <div>{{ surname.cul|safe }}</div>
+        </section>
+
+        {% if graph %}
+        <section class="card wide">
+            <h2>迁徙路径（pyecharts）</h2>
+            <div class="route">{{ graph|safe }}</div>
+        </section>
+        {% endif %}
+    </div>
+</main>
+
+<footer>氏源 · 数据来自课程项目示例数据集（{{ surname.second_name }}姓）</footer>
+
+<script src="{% static 'Surname/js/echarts.min.js' %}"></script>
+<script src="{% static 'Surname/js/echarts-wordcloud.min.js' %}"></script>
+<script src="{% static 'Surname/js/china.js' %}"></script>
+<script src="{% static 'Surname/js/draw.js' %}"></script>
+<script>
+    var second = "{{ surname.second_name|escapejs }}";
+    var mapdata = {{ mapData.data|safe }};
+    var min = {{ mapData.min }};
+    var max = {{ mapData.max }};
+    drawmap("mymap", mapdata, min, max, second);
+
+    var wordData = {{ wordCloudData|safe }};
+    drawwordcloud("mywordcloud", wordData, second);
+
+    var nodes = {{ node|safe }};
+    var links = {{ link|safe }};
+    drawgraph("mynet", nodes, links);
+</script>
+</body>
+</html>

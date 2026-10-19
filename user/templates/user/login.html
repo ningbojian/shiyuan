@@ -1,0 +1,70 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 | 氏源</title>
+    <style>
+        :root { --ink:#3f4438; --muted:#7c7765; --paper:#f7f4ec; --line:#ded7c6; --accent:#9b6f45; }
+        * { box-sizing: border-box; }
+        body { margin:0; font-family:"Microsoft YaHei","PingFang SC",sans-serif; color:var(--ink); background:var(--paper); }
+        header { display:flex; align-items:center; justify-content:space-between; padding:16px 5vw; border-bottom:1px solid var(--line); background:#fffdf7; }
+        .brand { display:flex; align-items:center; gap:10px; font-size:22px; font-weight:700; color:var(--ink); text-decoration:none; }
+        .brand img { width:36px; height:36px; object-fit:cover; border-radius:50%; border:1px solid var(--line); }
+        nav { display:flex; gap:16px; font-size:14px; }
+        nav a { color:var(--muted); text-decoration:none; }
+        nav a:hover { color:var(--accent); }
+        main { min-height:calc(100vh - 150px); display:flex; align-items:center; justify-content:center; padding:36px 18px; }
+        .card { width:min(440px,100%); background:#fffdf8; border:1px solid var(--line); border-radius:14px; padding:30px 30px 24px; box-shadow:0 16px 50px rgba(80,70,50,.08); }
+        h1 { margin:0 0 6px; font-size:28px; }
+        .sub { margin:0 0 22px; color:var(--muted); font-size:13px; }
+        label { display:block; margin:14px 0; color:var(--muted); font-size:13px; }
+        input { display:block; width:100%; margin-top:7px; padding:11px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; font-size:15px; color:var(--ink); outline:none; }
+        input:focus { border-color:var(--accent); }
+        button { width:100%; margin-top:10px; padding:12px; border:0; border-radius:8px; background:var(--ink); color:#fff; font-size:15px; cursor:pointer; }
+        button:hover { background:var(--accent); }
+        .err { background:#fbeae5; color:#9c3c25; border:1px solid #efc9bd; border-radius:8px; padding:9px 12px; font-size:13px; }
+        .links { display:flex; justify-content:space-between; gap:12px; margin-top:18px; font-size:13px; }
+        .links a { color:var(--accent); text-decoration:none; }
+        .hint { margin-top:18px; padding-top:14px; border-top:1px dashed var(--line); color:var(--muted); font-size:12px; line-height:1.7; }
+        footer { text-align:center; color:var(--muted); font-size:12px; padding:20px; border-top:1px solid var(--line); }
+    </style>
+</head>
+<body>
+<header>
+    <a class="brand" href="{% url 'user:index' %}"><img src="{% static 'img/logo.jpg' %}" alt="氏源">氏源</a>
+    <nav>
+        <a href="{% url 'user:index' %}">首页</a>
+        <a href="{% url 'surname:search' %}">姓氏搜索</a>
+        <a href="{% url 'surname:science' %}">姓氏科普</a>
+        <a href="{% url 'user:register' %}">注册</a>
+    </nav>
+</header>
+
+<main>
+    <section class="card">
+        <h1>用户登录</h1>
+        <p class="sub">登录后可进入个人中心并体验评论模块。</p>
+        {% if err %}<p class="err">{{ err }}</p>{% endif %}
+        <form method="post" action="{% url 'user:login' %}">
+            {% csrf_token %}
+            <label>账号
+                <input name="account" type="text" placeholder="请输入账号" autocomplete="username" required>
+            </label>
+            <label>密码
+                <input name="code" type="password" placeholder="请输入密码" autocomplete="current-password" required>
+            </label>
+            <button type="submit">登录</button>
+        </form>
+        <div class="links">
+            <a href="{% url 'user:register' %}">注册一个新账号</a>
+            <a href="{% url 'user:index' %}">返回首页</a>
+        </div>
+        <p class="hint">演示账号：<b>demo</b> / <b>demo123456</b>（由 seed_demo.py 生成）</p>
+    </section>
+</main>
+
+<footer>氏源 · 数据库课程项目展示</footer>
+</body>
+</html>

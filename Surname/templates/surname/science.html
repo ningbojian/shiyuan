@@ -1,0 +1,31 @@
+{% extends "surname/base.html" %}
+{% block title %}姓氏科普 | 氏源{% endblock %}
+{% block content %}
+<h1>姓氏科普</h1>
+<div class="panel">
+    <p>姓氏不仅是一个称呼，也记录了族群迁徙、地域文化和历史人物。氏源把分散在文本里的姓氏资料整理成可查询、可比较、可追踪的数据。</p>
+</div>
+
+<div class="grid">
+    <div class="panel">
+        <h2>起源</h2>
+        <p>每个姓氏可能同时有多个源流：以国为氏、以邑为氏、以官为氏、少数民族改姓等。详情页按段落展示起源，并保留原始文本。</p>
+    </div>
+    <div class="panel">
+        <h2>迁徙</h2>
+        <p>从迁徙文本中识别朝代与省份关键词，生成朝代维度的路径图，用地图展示姓氏在不同时期的分布变化。</p>
+    </div>
+    <div class="panel">
+        <h2>人物</h2>
+        <p>按朝代组织历代名人，形成“姓氏 → 朝代 → 人物”的树状结构，便于比较不同姓氏在历史中的活跃时期。</p>
+    </div>
+    <div class="panel">
+        <h2>文化</h2>
+        <p>把姓氏文化、郡望、堂号等文本做成词云，用权重前 N 的词快速了解一个姓氏的文化关键词。</p>
+    </div>
+</div>
+
+<div class="panel">
+    <p>想直接体验？<a href="{% url 'surname:search' %}">去搜索一个姓氏</a>，例如“李”“王”“张”“丁”。</p>
+</div>
+{% endblock %}

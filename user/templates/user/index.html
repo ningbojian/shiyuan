@@ -1,0 +1,116 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>氏源 | 姓氏文化查询与可视化</title>
+    <style>
+        :root {
+            --ink: #3f4438;
+            --muted: #7c7765;
+            --paper: #f7f4ec;
+            --line: #ded7c6;
+            --accent: #9b6f45;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            color: var(--ink);
+            background: var(--paper);
+        }
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 18px 7vw;
+            border-bottom: 1px solid var(--line);
+            background: rgba(255, 253, 247, 0.9);
+        }
+        .brand { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 700; color: var(--ink); text-decoration: none; }
+        .brand img { width: 44px; height: 44px; object-fit: cover; border-radius: 50%; border: 1px solid var(--line); }
+        nav { display: flex; flex-wrap: wrap; gap: 20px; font-size: 15px; }
+        nav a { color: var(--muted); text-decoration: none; }
+        nav a:hover { color: var(--accent); }
+        main { max-width: 1180px; margin: 0 auto; padding: 36px 24px 64px; }
+        .hero { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: #fff; }
+        .hero img { display: block; width: 100%; height: auto; }
+        .intro { display: grid; grid-template-columns: 1.5fr 1fr; gap: 28px; align-items: start; margin: 34px 0 28px; }
+        .intro h1 { font-size: 34px; margin: 0 0 14px; letter-spacing: 1px; }
+        .intro p { color: var(--muted); line-height: 1.9; margin: 0 0 10px; }
+        .meta { border-left: 3px solid var(--accent); padding-left: 16px; color: var(--muted); line-height: 1.8; font-size: 14px; }
+        .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+        .card { display: block; padding: 22px; border: 1px solid var(--line); border-radius: 12px; background: #fffdf8; color: var(--ink); text-decoration: none; transition: transform .15s ease, border-color .15s ease; }
+        .card:hover { transform: translateY(-3px); border-color: var(--accent); }
+        .card h2 { margin: 0 0 8px; font-size: 19px; }
+        .card p { margin: 0; color: var(--muted); line-height: 1.7; font-size: 14px; }
+        footer { text-align: center; color: var(--muted); font-size: 13px; padding: 22px 0 34px; border-top: 1px solid var(--line); }
+        @media (max-width: 800px) {
+            .intro { grid-template-columns: 1fr; }
+            .cards { grid-template-columns: 1fr; }
+            header { align-items: flex-start; flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+<header>
+    <a class="brand" href="{% url 'user:index' %}">
+        <img src="{% static 'img/logo.jpg' %}" alt="氏源 logo">
+        <span>氏源</span>
+    </a>
+    <nav>
+        <a href="{% url 'user:index' %}">首页</a>
+        <a href="{% url 'surname:search' %}">姓氏搜索</a>
+        <a href="{% url 'surname:science' %}">姓氏科普</a>
+        <a href="{% url 'surname:information' %}">姓氏资料</a>
+        <a href="{% url 'surname:announce' %}">公告</a>
+        {% if request.session.user_info %}
+            <a href="{% url 'user:personal' %}">个人中心</a>
+        {% else %}
+            <a href="{% url 'user:log' %}">登录</a>
+        {% endif %}
+    </nav>
+</header>
+
+<main>
+    <section class="hero">
+        <img src="{% static 'img/banner.jpg' %}" alt="氏源 · 姓氏文化">
+    </section>
+
+    <section class="intro">
+        <div>
+            <h1>从姓氏出发，看见中国文化的迁徙</h1>
+            <p>氏源是一个课程团队项目：以姓氏为核心，组织姓氏起源、文化、人口分布、历代名人和迁徙路径，并通过地图、词云、关系图和时间轴把数据可视化。</p>
+            <p>技术栈：Django + SQLite/MySQL + ECharts/pyecharts；支持用户注册登录、姓氏检索和评论互动。</p>
+        </div>
+        <aside class="meta">
+            <strong>项目类型</strong><br>
+            数据库课程团队项目（6 人）<br><br>
+            <strong>我的工作</strong><br>
+            数据模型、用户注册登录、评论模块、页面与接口整理
+        </aside>
+    </section>
+
+    <section class="cards">
+        <a class="card" href="{% url 'surname:search' %}">
+            <h2>姓氏搜索</h2>
+            <p>按姓氏查询起源、文化、人口分布、历代名人，查看迁徙地图和词云。</p>
+        </a>
+        <a class="card" href="{% url 'surname:information' %}">
+            <h2>姓氏资料</h2>
+            <p>浏览姓氏文化的背景资料，了解数据模型和项目设计。</p>
+        </a>
+        <a class="card" href="{% url 'user:log' %}">
+            <h2>登录 / 注册</h2>
+            <p>创建账号后进入个人中心，体验演示评论功能。</p>
+        </a>
+    </section>
+</main>
+
+<footer>
+    氏源 · 数据库课程项目展示 · Django + SQLite + ECharts
+</footer>
+</body>
+</html>
