@@ -5,7 +5,7 @@
 **在线演示：** <https://ningbojian.pythonanywhere.com/>（PythonAnywhere 免费版，部署步骤见 [`docs/DEPLOY.md`](docs/DEPLOY.md)）
 
 > 查一个姓氏，读它的源流、人物、迁徙与分布。  
-> 课程项目的重构版：Django 5.2 + SQLite + 本地 ECharts，348 个姓氏的阅读型目录站。
+> Django 5.2 + SQLite + 本地 ECharts，348 个姓氏的阅读型目录站。
 
 ![氏源首页](docs/screenshots/home.png)
 
@@ -239,6 +239,4 @@ gunicorn project.wsgi:application --bind 127.0.0.1:8000
 
 ## 团队与许可
 
-原课程项目：上海财经大学《数据库原理》2021 Fall 六人小组（熊博雅、张军、安津毅、袁月、谭峰、向怡然）。本仓库由安津毅整理重构。
-
-本项目为课程作品展示，**未添加开源 LICENSE**；未经许可请勿商用。参考产品（读通鉴等）只借鉴产品结构，未复制其文本、图片、数据或品牌。
+**未添加开源 LICENSE**；未经许可请勿商用。
