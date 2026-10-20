@@ -9,7 +9,9 @@ marked demo summaries. Run from the repository root:
 
 from __future__ import annotations
 
+import argparse
 import json
+import sys
 from pathlib import Path
 
 from pypinyin import lazy_pinyin
@@ -18,6 +20,15 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 SOURCE_DIR = DATA_DIR / "surnames"
 OUTPUT = DATA_DIR / "catalog.json"
+
+sys.path.insert(0, str(ROOT))
+from Surname.services.source_archive import (  # noqa: E402
+    build_imported_entry,
+    merge_catalog,
+    pinyin_for_surname,
+    scan_source_dir,
+    slug_for_surname,
+)
 
 SURNAMES = [
     "李", "王", "张", "刘", "陈", "杨", "赵", "黄", "周", "吴", "徐",
@@ -668,6 +679,7 @@ def build_surname(surname: str) -> dict:
         "keywords": keywords,
         "source_note": SOURCE_NOTE,
         "is_demo": True,
+        "is_imported": False,
         "is_featured": surname in {"李", "王", "张", "刘", "陈", "杨"},
         "popularity": 100 - SURNAMES.index(surname),
         "figures": figure_items,
@@ -677,24 +689,73 @@ def build_surname(surname: str) -> dict:
     }
 
 
+def build_surnames(source_dir: Path | None) -> tuple[list[dict], dict]:
+    """Build curated entries and merge the optional course archive."""
+    curated = [build_surname(surname) for surname in SURNAMES]
+    if source_dir is None:
+        return curated, {
+            "added": 0,
+            "merged": 0,
+            "figures_added": 0,
+            "figures_deduped": 0,
+        }
+
+    used_slugs = {item["slug"] for item in curated}
+    imported = []
+    for source in scan_source_dir(source_dir):
+        pinyin_value, initial = pinyin_for_surname(source.name)
+        slug = slug_for_surname(source.name, used_slugs)
+        imported.append(
+            build_imported_entry(
+                source,
+                slug=slug,
+                pinyin=pinyin_value,
+                initial=initial,
+            )
+        )
+    return merge_catalog(curated, imported)
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--source-dir",
+        type=Path,
+        default=None,
+        help="课程原始资料目录；省略时只生成 33 个策划姓氏。",
+    )
+    parser.add_argument("--output", type=Path, default=OUTPUT)
+    args = parser.parse_args()
+    if args.source_dir is not None and not args.source_dir.is_dir():
+        parser.error(f"源目录不存在：{args.source_dir}")
+
+    surnames, stats = build_surnames(args.source_dir)
     catalog = {
         "meta": {
-            "version": 1,
+            "version": 2 if args.source_dir is not None else 1,
             "generated_at": "2026-10-20",
-            "disclaimer": "课程展示用整理，非权威统计。",
+            "disclaimer": (
+                "课程展示用整理，非权威统计；"
+                "课程原始资料条目未校订，以原文为准。"
+            ),
         },
         "clans": [
             {"name": name, "slug": slug, "kind": kind, "description": description}
             for name, (slug, kind, description) in CLANS.items()
         ],
-        "surnames": [build_surname(surname) for surname in SURNAMES],
+        "surnames": surnames,
     }
-    OUTPUT.write_text(
+    args.output.write_text(
         json.dumps(catalog, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    print(f"wrote {OUTPUT} ({len(catalog['surnames'])} surnames)")
+    figures = sum(len(item["figures"]) for item in surnames)
+    print(
+        f"wrote {args.output} (surnames={len(surnames)} figures={figures} "
+        f"imported={stats['added']} merged={stats['merged']} "
+        f"figures_added={stats['figures_added']} "
+        f"figures_deduped={stats['figures_deduped']})"
+    )
 
 
 if __name__ == "__main__":

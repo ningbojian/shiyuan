@@ -71,10 +71,14 @@ DYNASTY_NAMES = (
     "唐朝",
     "五代十国",
     "宋朝",
+    "辽朝",
+    "金朝",
+    "西夏",
     "元朝",
     "明朝",
     "清朝",
     "中华民国",
+    "中华人民共和国",
 )
 
 RELATION_TYPES = {"origin", "branch", "changed", "same_clan"}

@@ -5,7 +5,7 @@ from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 
-from Surname.models import Dynasty, Province, SecondName
+from Surname.models import Dynasty, Famous, Province, SecondName
 from user.models import Comment, Favorite, ReadingHistory
 
 
@@ -19,6 +19,7 @@ class SeedDemoTests(TestCase):
             "provinces": Province.objects.count(),
             "dynasties": Dynasty.objects.count(),
             "surnames": SecondName.objects.count(),
+            "figures": Famous.objects.count(),
             "users": get_user_model().objects.count(),
             "comments": Comment.objects.count(),
             "favorites": Favorite.objects.count(),
@@ -32,8 +33,9 @@ class SeedDemoTests(TestCase):
         self.assertEqual(first, self.counts())
 
         self.assertEqual(first["provinces"], 34)
-        self.assertEqual(first["dynasties"], 18)
-        self.assertEqual(first["surnames"], 33)
+        self.assertEqual(first["dynasties"], 22)
+        self.assertEqual(first["surnames"], 348)
+        self.assertEqual(first["figures"], 6251)
         self.assertEqual(first["users"], 3)
         self.assertGreaterEqual(first["comments"], 2)
         self.assertGreaterEqual(first["favorites"], 1)

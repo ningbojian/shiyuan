@@ -36,7 +36,8 @@ class StaticPageTests(TestCase):
     def test_announce_content_is_current(self):
         response = self.client.get(reverse("Surname:announce"))
         self.assertContains(response, "seed_demo")
-        self.assertContains(response, "33")
+        self.assertContains(response, "348")
+        self.assertNotContains(response, "33 个姓氏")
         self.assertNotContains(response, "scripts/seed_demo.py")
         self.assertNotContains(response, "GET 查询参数")
 
