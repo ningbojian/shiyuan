@@ -58,7 +58,15 @@
 |---|---|
 | ![人物索引](docs/screenshots/figures.png) | ![源流总览](docs/screenshots/origins.png) |
 
-移动端与夜间模式截图、Lighthouse 与响应式验收记录见 [`docs/QA.md`](docs/QA.md)。
+| 移动端 | 夜间模式 |
+|---|---|
+| ![移动端首页](docs/screenshots/home-mobile.png) | ![夜间模式首页](docs/screenshots/home-night.png) |
+
+| 分布地图（示意强度） |
+|---|
+| ![分布地图](docs/screenshots/charts.png) |
+
+更多验收记录见 [`docs/QA.md`](docs/QA.md)。
 
 ## 技术架构
 
@@ -118,7 +126,7 @@ python manage.py runserver 127.0.0.1:8000
 
 打开 <http://127.0.0.1:8000/>。
 
-- 演示账号：`demo` / `demo123456`，仅由 `seed_demo` 在 `DEBUG=1` 时创建；生产环境需显式 `--force` 且会打印警告。
+- 演示账号：`demo` / `demo123456`，仅由 `seed_demo` 在 `DEBUG=1` 时创建；生产环境需显式 `--force` 且会打印警告。公网演示站首次部署后已轮换该密码，这里的密码只用于本地开发环境。
 - PowerShell 请使用 `$env:DJANGO_DEBUG="1"` 等写法。
 - 项目不自动加载 `.env`；[`.env.example`](.env.example) 只是变量清单。
 - 开发环境缺少 `DJANGO_SECRET_KEY` 时会生成并复用 `.dev-secret-key`（已 gitignore）；生产环境缺少则直接报错。
@@ -131,7 +139,7 @@ ruff check .
 DJANGO_DEBUG=1 python manage.py check
 ```
 
-- 210+ 个 Django 测试，覆盖模型约束、目录加载/校验、课程归档解析、搜索分页、认证与 CSRF/IDOR、评论 XSS、收藏/历史、API、SEO 与部署配置；
+- 219 个 Django 测试，覆盖模型约束、目录加载/校验、课程归档解析、搜索分页、认证与 CSRF/IDOR、评论 XSS、收藏/历史、API、SEO 与部署配置；
 - 查询预算：首页 6 条、目录 ≤ 5 条、详情 ≤ 16 条、人物列表 ≤ 5 条；
 - Lighthouse 无障碍 1.00（5 个页面），375/768/1440 px 无横向溢出；
 - GitHub Actions 执行 `check`、`test`、`ruff` 与生产模式 `collectstatic`。
