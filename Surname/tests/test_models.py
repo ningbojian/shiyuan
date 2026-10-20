@@ -37,6 +37,10 @@ class SecondNameModelTests(TestCase):
         surname = SecondName.objects.create(second_name="李", pinyin="li")
         self.assertEqual(surname.view_count, 0)
 
+    def test_is_imported_defaults_false(self):
+        surname = SecondName.objects.create(second_name="李", pinyin="li")
+        self.assertFalse(surname.is_imported)
+
 
 class DistributionModelTests(TestCase):
     def setUp(self):

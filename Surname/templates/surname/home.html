@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block title %}氏源 · 查找姓氏，读一段来处{% endblock %}
-{% block meta_description %}氏源收录 33 个姓氏的源流、人物、迁徙与分布资料。按姓氏、拼音或首字母检索，读一段中国人的来处。{% endblock %}
+{% block meta_description %}氏源收录 {{ stats.surnames }} 个姓氏的源流、人物、迁徙与分布资料。按姓氏、拼音或首字母检索，读一段中国人的来处。{% endblock %}
 {% block content %}
 <section class="hero">
     <p class="eyebrow">读姓氏 · 知来处</p>
     <h1>查找姓氏</h1>
-    <p class="lede">从一个字出发，看它的源流、人物、迁徙与分布。当前收录 {{ stats.surnames }} 个姓氏，全部为课程演示整理资料。</p>
+    <p class="lede">从一个字出发，看它的源流、人物、迁徙与分布。当前收录 {{ stats.surnames }} 个姓氏，含整理条目与课程原始资料。</p>
     <form class="search-form" action="{% url 'Surname:search' %}" method="get" role="search">
         <label class="visually-hidden" for="home-q">姓氏、拼音或首字母</label>
         <input id="home-q" type="search" name="q" placeholder="输入姓氏、拼音或首字母，如：李 / li / L" autocomplete="off">
@@ -43,7 +43,7 @@
                 <li>
                     <a class="surname-card" href="{% url 'Surname:detail' surname.slug %}">
                         <span class="name">{{ surname.second_name }}</span>
-                        <span class="meta">{{ surname.pinyin }}{% if surname.initial %} · {{ surname.initial }}{% endif %}</span>
+                        <span class="meta">{{ surname.pinyin }}{% if surname.initial %} · {{ surname.initial }}{% endif %}{% if surname.is_imported %} · <span class="badge">原始资料</span>{% endif %}</span>
                         {% if surname.summary %}<span class="card-summary">{{ surname.summary|truncatechars:64 }}</span>{% endif %}
                     </a>
                 </li>
@@ -59,7 +59,7 @@
         <h2 id="daily-title">今日一姓</h2>
         {% if daily %}
             <p class="daily-name">{{ daily.second_name }}</p>
-            <p class="daily-pinyin">{{ daily.pinyin }}{% if daily.initial %} · {{ daily.initial }}{% endif %}</p>
+            <p class="daily-pinyin">{{ daily.pinyin }}{% if daily.initial %} · {{ daily.initial }}{% endif %}{% if daily.is_imported %} · <span class="badge">原始资料</span>{% endif %}</p>
             {% if daily.summary %}<p>{{ daily.summary }}</p>{% endif %}
             <a class="btn" href="{% url 'Surname:detail' daily.slug %}">读 {{ daily.second_name }} 姓</a>
         {% else %}
@@ -77,6 +77,6 @@
         <div><dt>历史人物</dt><dd>{{ stats.figures }}</dd></div>
         <div><dt>省级行政区</dt><dd>{{ stats.provinces }}</dd></div>
     </dl>
-    <p class="muted">演示数据 · 非权威统计。分布强度仅用于可视化，不代表人口占比。</p>
+    <p class="muted">整理条目与课程原始资料 · 非权威统计。分布强度仅用于可视化，不代表人口占比。</p>
 </section>
 {% endblock %}

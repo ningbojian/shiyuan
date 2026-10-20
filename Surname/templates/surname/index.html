@@ -19,7 +19,11 @@
         <p class="eyebrow">{{ surname.pinyin|default:"姓氏" }}{% if surname.initial %} · {{ surname.initial }}{% endif %}</p>
         <h1>{{ surname.second_name }}姓</h1>
         {% if surname.summary %}<p class="lede">{{ surname.summary }}</p>{% endif %}
-        {% if surname.is_demo %}<span class="badge badge-demo">演示数据 · 非权威统计</span>{% endif %}
+        {% if surname.is_imported %}
+            <span class="badge">课程原始资料 · 未校订</span>
+        {% elif surname.is_demo %}
+            <span class="badge badge-demo">演示数据 · 非权威统计</span>
+        {% endif %}
     </div>
     <div class="detail-actions">
         {% if user.is_authenticated %}
@@ -39,17 +43,29 @@
     <div class="detail-body">
         <section class="section" id="overview">
             <h2>姓氏基本信息</h2>
-            <div>{{ surname.base_information|linebreaks }}</div>
+            {% if surname.base_information %}
+                <div>{{ surname.base_information|linebreaks }}</div>
+            {% else %}
+                <p class="muted">暂无基本文字资料。</p>
+            {% endif %}
         </section>
 
         <section class="section" id="origin">
             <h2>姓氏起源</h2>
-            <div>{{ surname.ori|linebreaks }}</div>
+            {% if surname.ori %}
+                <div>{{ surname.ori|linebreaks }}</div>
+            {% else %}
+                <p class="muted">暂无起源文字资料。</p>
+            {% endif %}
         </section>
 
         <section class="section" id="migration">
             <h2>迁徙传播</h2>
-            <div>{{ surname.mig|linebreaks }}</div>
+            {% if surname.mig %}
+                <div>{{ surname.mig|linebreaks }}</div>
+            {% else %}
+                <p class="muted">暂无迁徙文字资料。</p>
+            {% endif %}
             {% if chart_payloads.migration %}
                 <figure class="chart-block" data-chart="migration">
                     <div class="chart-canvas" data-chart-canvas role="img" aria-label="{{ surname.second_name }}姓迁徙路线示意图"></div>
@@ -67,7 +83,11 @@
                         </p>
                     </li>
                 {% empty %}
-                    <li class="muted">暂无迁徙记录。</li>
+                    {% if surname.mig %}
+                        <li class="muted">暂无结构化迁徙事件；以上为原始文字资料。</li>
+                    {% else %}
+                        <li class="muted">暂无迁徙记录。</li>
+                    {% endif %}
                 {% endfor %}
             </ol>
             {% if chart_payloads.migration %}
@@ -94,7 +114,11 @@
 
         <section class="section" id="distribution">
             <h2>人口分布</h2>
-            <div>{{ surname.dis|linebreaks }}</div>
+            {% if surname.dis %}
+                <div>{{ surname.dis|linebreaks }}</div>
+            {% else %}
+                <p class="muted">暂无分布文字资料。</p>
+            {% endif %}
             {% if chart_payloads.distribution %}
                 <figure class="chart-block" data-chart="distribution">
                     <div class="chart-canvas" data-chart-canvas role="img" aria-label="{{ surname.second_name }}姓分布示意地图"></div>
@@ -118,6 +142,8 @@
                     </table>
                 </details>
                 <p class="muted">强度为 0–100 的可视化示意值，不是人口占比。</p>
+            {% elif surname.dis %}
+                <p class="muted">暂无结构化分布数据；以上为原始文字资料。</p>
             {% else %}
                 <p class="muted">暂无分布数据。</p>
             {% endif %}
@@ -180,7 +206,11 @@
 
         <section class="section" id="culture">
             <h2>姓氏文化</h2>
-            <div>{{ surname.cul|linebreaks }}</div>
+            {% if surname.cul %}
+                <div>{{ surname.cul|linebreaks }}</div>
+            {% else %}
+                <p class="muted">暂无文化文字资料。</p>
+            {% endif %}
             {% if chart_payloads.keywords %}
                 <figure class="chart-block" data-chart="keywords">
                     <div class="chart-canvas chart-canvas-small" data-chart-canvas role="img" aria-label="{{ surname.second_name }}姓文化关键词词云"></div>
@@ -201,7 +231,7 @@
 
         <section class="section" id="source">
             <h2>来源说明</h2>
-            {% include "partials/_source_note.html" with source_note=surname.source_note is_demo=surname.is_demo %}
+            {% include "partials/_source_note.html" with source_note=surname.source_note is_demo=surname.is_demo is_imported=surname.is_imported %}
         </section>
 
         {% include "surname/_comments.html" %}

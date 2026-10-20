@@ -1,6 +1,10 @@
-{% if is_demo or source_note %}
+{% if is_imported or is_demo or source_note %}
 <aside class="source-note" aria-label="数据来源说明">
-    {% if is_demo %}<strong>演示数据</strong>：内容与分布强度仅为课程展示整理，非权威统计。{% endif %}
+    {% if is_imported %}
+        <strong>课程原始资料（未校订）</strong>：来自课程归档，未做内容校订；分布、人物等信息以原文为准。
+    {% elif is_demo %}
+        <strong>演示数据</strong>：内容与分布强度仅为课程展示整理，非权威统计。
+    {% endif %}
     {% if source_note %}<span>{{ source_note|linebreaksbr }}</span>{% endif %}
 </aside>
 {% endif %}

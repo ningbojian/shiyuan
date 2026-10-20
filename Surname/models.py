@@ -39,6 +39,7 @@ class SecondName(models.Model):
     keywords = models.JSONField(default=list, blank=True)
     source_note = models.TextField(blank=True)
     is_demo = models.BooleanField(default=True)
+    is_imported = models.BooleanField(default=False, db_index=True)
     is_featured = models.BooleanField(default=False)
     popularity = models.PositiveIntegerField(default=0)
     view_count = models.PositiveBigIntegerField(default=0)

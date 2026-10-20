@@ -240,6 +240,15 @@ def validate_catalog(path: Path, *, min_surnames: int = 0) -> list[str]:
             label = name or prefix
             errors.append(f"{prefix}: 姓氏 {label} 的 is_demo 为真时必须提供 source_note。")
 
+        is_imported = item.get("is_imported", False)
+        if not isinstance(is_imported, bool):
+            errors.append(f"{prefix}: is_imported 必须是布尔值。")
+        elif is_imported:
+            if not item.get("is_demo", True):
+                errors.append(f"{prefix}: is_imported 为真时必须保留 is_demo。")
+            if not _non_empty_string(item.get("source_note")):
+                errors.append(f"{prefix}: is_imported 为真时必须提供 source_note。")
+
         distributions = item.get("distributions", [])
         seen_provinces: set[str] = set()
         if not isinstance(distributions, list):
@@ -406,6 +415,7 @@ def _sync_surname(item: dict[str, Any]) -> SecondName:
         "keywords": item.get("keywords") or [],
         "source_note": item.get("source_note", ""),
         "is_demo": item.get("is_demo", True),
+        "is_imported": item.get("is_imported", False),
         "is_featured": item.get("is_featured", False),
         "popularity": item.get("popularity", 0),
     }

@@ -179,6 +179,16 @@ class LoadCatalogTests(CatalogTestCase):
         self.assertEqual(SecondName.objects.count(), 0)
         self.assertEqual(Distribution.objects.count(), 0)
 
+    def test_load_sets_is_imported(self):
+        payload = self.payload()
+        payload["surnames"][1]["is_imported"] = True
+        path = self.write_catalog(payload)
+
+        load_catalog(path)
+
+        self.assertFalse(SecondName.objects.get(second_name="李").is_imported)
+        self.assertTrue(SecondName.objects.get(second_name="王").is_imported)
+
 
 class ValidateCatalogTests(CatalogTestCase):
     def test_validate_reports_missing_source_note(self):
@@ -199,6 +209,27 @@ class ValidateCatalogTests(CatalogTestCase):
         errors = validate_catalog(path)
 
         self.assertTrue(any("标记" in error or "markup" in error for error in errors), errors)
+
+    def test_validate_rejects_non_bool_is_imported(self):
+        payload = self.payload()
+        payload["surnames"][0]["is_imported"] = "yes"
+        path = self.write_catalog(payload)
+
+        errors = validate_catalog(path)
+
+        self.assertTrue(any("is_imported" in error for error in errors), errors)
+
+    def test_validate_imported_requires_source_note(self):
+        payload = self.payload()
+        payload["surnames"][0]["is_imported"] = True
+        payload["surnames"][0]["is_demo"] = False
+        payload["surnames"][0].pop("source_note")
+        path = self.write_catalog(payload)
+
+        errors = validate_catalog(path)
+
+        self.assertTrue(any("is_imported" in error for error in errors), errors)
+        self.assertTrue(any("source_note" in error for error in errors), errors)
 
 
 class CatalogCommandTests(CatalogTestCase):

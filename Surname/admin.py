@@ -14,8 +14,15 @@ from Surname.models import (
 
 @admin.register(SecondName)
 class SecondNameAdmin(admin.ModelAdmin):
-    list_display = ("second_name", "pinyin", "initial", "is_featured", "view_count")
-    list_filter = ("initial", "is_featured", "is_demo")
+    list_display = (
+        "second_name",
+        "pinyin",
+        "initial",
+        "is_featured",
+        "is_imported",
+        "view_count",
+    )
+    list_filter = ("initial", "is_featured", "is_demo", "is_imported")
     search_fields = ("second_name", "pinyin", "aliases", "summary")
     prepopulated_fields = {"slug": ("pinyin",)}
 
