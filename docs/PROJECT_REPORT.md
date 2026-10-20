@@ -70,17 +70,18 @@ flowchart LR
 - 唯一约束与检查约束把数据完整性放到数据库层；
 - 长文本统一 `TextField`，不再截断；
 - 内置 `auth.User` + `Profile`，避免自定义用户缺失权限体系与迁移风险；
-- `is_demo`、`source_note`、`is_illustrative` 显式标注演示数据。
+- `is_demo`、`is_imported`、`source_note`、`is_illustrative` 显式标注演示数据与未校订的课程原始资料。
 
 ## 5. 数据管线
 
-1. `data/surnames/` 保留李、王、张、丁原始课程文本；
-2. `scripts/generate_catalog.py` 生成/更新 `data/catalog.json`；
-3. `validate_catalog` 检查数量、slug/拼音/首字母唯一、强度范围、引用存在、来源说明、纯文本策略；
-4. `load_catalog` 在事务中按自然键 `update_or_create`，可重复运行；`--dry-run` 不写库；
-5. `seed_demo` 创建省份、朝代、演示账号、评论、收藏与历史，可重复运行。
+1. `data/surnames/` 保留李、王、张、丁原始课程文本；本机课程归档提供 346 个姓氏文件夹；
+2. `Surname/services/source_archive.py` 以纯函数解析归档：读取六个文本文件、映射 50 种朝代标题、清洗纯文本、按 `(姓氏, 姓名)` 合并人物；
+3. `scripts/generate_catalog.py` 生成 33 个整理条目，并把 315 个导入条目合并进 `data/catalog.json`（31 个重叠姓氏保留整理正文，只追加原始人物）；
+4. `validate_catalog` 检查数量、slug/拼音/首字母唯一、强度范围、引用存在、来源说明、`is_imported` 契约与纯文本策略；
+5. `load_catalog` 在事务中按自然键 `update_or_create`，可重复运行；`--dry-run` 不写库；
+6. `seed_demo` 创建 34 个省份、22 个时期、演示账号、评论、收藏与历史，可重复运行。
 
-加载失败不会留下半套数据（`transaction.atomic`）。
+最终数据规模：348 个姓氏、6,251 位人物、66 条迁徙事件、36 条源流关系。加载失败不会留下半套数据（`transaction.atomic`）。
 
 ## 6. 安全设计
 
@@ -105,7 +106,7 @@ flowchart LR
 
 ## 8. 测试与验收
 
-- 189 个 Django 测试：模型约束、catalog 加载/校验、搜索分页、详情预算、图表 payload、认证/CSRF/IDOR、XSS、收藏/历史、API envelope、SEO、部署检查、反向代理与审计日志配置；
+- 219 个 Django 测试：模型约束、catalog 加载/校验、课程归档解析与 348/6,251 数据契约、搜索分页、详情预算、图表 payload、认证/CSRF/IDOR、XSS、收藏/历史、API envelope、SEO、部署检查、反向代理与审计日志配置；
 - `ruff check .` 静态检查；
 - Lighthouse Accessibility 5 页 1.00；375/768/1440 px 无横向溢出；图表在夜间模式正确重绘；
 - GitHub Actions 跑 `check`、`test`、`ruff` 与生产 `collectstatic`；
@@ -113,8 +114,9 @@ flowchart LR
 
 ## 9. 已知限制
 
-- SQLite 单机演示，不承诺多实例并发；
-- 数据为课程演示整理，分布强度不是统计值；
+- SQLite 适合当前 348 姓氏/6,251 人物/单 worker；多实例、持续高并发写或全文检索时需切换 PostgreSQL；
+- 33 个整理条目为课程演示整理，315 个导入条目为未校订课程资料；分布强度不是统计值；
+- 原始资料缺章节普遍存在，未自动抽取结构化分布/迁徙/关系；人物仅按姓名合并，未做实体消歧；
 - 评论无分页；搜索为 `icontains`，未上全文索引；
 - API 只读且未加认证/限流；
 - 未实现邮箱验证与找回密码；

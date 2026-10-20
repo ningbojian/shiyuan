@@ -3,7 +3,7 @@
 [![CI](https://github.com/ningbojian/shiyuan/actions/workflows/ci.yml/badge.svg)](https://github.com/ningbojian/shiyuan/actions/workflows/ci.yml)
 
 > 查一个姓氏，读它的源流、人物、迁徙与分布。  
-> 课程项目的重构版：Django 5.2 + SQLite + 本地 ECharts，33 个姓氏的阅读型目录站。
+> 课程项目的重构版：Django 5.2 + SQLite + 本地 ECharts，348 个姓氏的阅读型目录站。
 
 ![氏源首页](docs/screenshots/home.png)
 
@@ -82,14 +82,18 @@ flowchart LR
 
 | 内容 | 数量 |
 |---|---|
-| 姓氏 | 33 |
-| 历史人物 | 132 |
+| 姓氏 | 348（33 个整理条目 + 315 个课程原始资料条目） |
+| 历史人物 | 6,251 |
 | 迁徙事件 | 66 |
 | 源流关系 | 36 |
 | 宗族节点 | 10 |
-| 省份 / 朝代 | 34 / 18 |
+| 省份 / 时期 | 34 / 22 |
 
-李、王、张、丁四姓的原始课程文本完整保留在 `data/surnames/`，其余姓氏与全部人物/事件/分布为演示整理内容。**分布强度是可视化示意值，不是人口占比**；所有演示记录带 `is_demo=True` 与来源说明。详见 [`docs/DATA.md`](docs/DATA.md)。
+李、王、张、丁四姓的原始课程文本完整保留在 `data/surnames/`；另有 315 个姓氏来自上海财经大学《数据库原理》2021 Fall 课程归档。源目录不随仓库提交，导入条目标记 `is_imported=True`，内容未校订。31 个重叠姓氏保留整理正文，只合并原始人物；41 条同姓同名原始人物按最长简介合并，8 条空信息跳过。源归档中的“上官”文件夹实际是又姓资料，因此目录中有“又”而无“上官”。
+
+课程原始资料的分布/迁徙多为文字，未自动抽取为结构化数据；页面会显示原文，并明确标注“暂无结构化数据”。分布强度只存在于 33 个整理条目中，是可视化示意值，不是人口占比；整理记录带 `is_demo=True` 与来源说明。详见 [`docs/DATA.md`](docs/DATA.md)。
+
+**为什么 SQLite 够用：** 当前 348 姓氏、6,251 人物、约 6.6 MB JSON，数据库约 10–25 MB；部署为单 worker、读多写少，评论/收藏/历史都是低频小事务。只有多 worker/多实例、持续高并发写、全文检索或平台磁盘非持久时，才需要迁移 PostgreSQL。
 
 ## 快速开始
 
@@ -125,7 +129,7 @@ ruff check .
 DJANGO_DEBUG=1 python manage.py check
 ```
 
-- 180+ 个 Django 测试，覆盖模型约束、目录加载/校验、搜索分页、认证与 CSRF/IDOR、评论 XSS、收藏/历史、API、SEO 与部署配置；
+- 210+ 个 Django 测试，覆盖模型约束、目录加载/校验、课程归档解析、搜索分页、认证与 CSRF/IDOR、评论 XSS、收藏/历史、API、SEO 与部署配置；
 - 查询预算：首页 6 条、目录 ≤ 5 条、详情 ≤ 16 条、人物列表 ≤ 5 条；
 - Lighthouse 无障碍 1.00（5 个页面），375/768/1440 px 无横向溢出；
 - GitHub Actions 执行 `check`、`test`、`ruff` 与生产模式 `collectstatic`。
@@ -150,7 +154,7 @@ shiyuan/
 ├─ templates/                # 全站壳、robots.txt、404/500
 ├─ static/                   # 纸墨样式、站点 JS、图表 JS、本地 ECharts
 ├─ data/
-│  ├─ catalog.json           # 33 个姓氏的唯一可复现数据源
+│  ├─ catalog.json           # 348 个姓氏的唯一可复现数据源（含 315 个原始条目）
 │  └─ surnames/              # 李、王、张、丁原始文本样本
 ├─ docs/                     # API / DATA / QA / 项目报告 / 截图
 ├─ .github/workflows/ci.yml
@@ -166,7 +170,17 @@ python manage.py load_catalog               # 加载/同步目录
 python manage.py seed_demo                  # 省份、朝代、演示账号、评论、收藏、历史
 ```
 
-修改 `data/surnames/` 或生成脚本后，运行 `python scripts/generate_catalog.py` 重建 `data/catalog.json`，再执行上面的加载命令。
+修改 `data/surnames/` 或生成脚本后重建 `data/catalog.json`：
+
+```bash
+# 有课程归档时：生成 33 个整理条目 + 315 个原始条目
+python scripts/generate_catalog.py --source-dir "<课程归档目录>" --output data/catalog.json
+
+# 没有归档时：只生成 33 个整理条目；不要用它覆盖已导入的完整 catalog
+python scripts/generate_catalog.py
+```
+
+源归档不随仓库提交；`data/catalog.json` 是站点唯一可复现数据源。生成后再执行上面的校验/加载命令。
 
 ## API、SEO 与部署
 
@@ -199,7 +213,7 @@ gunicorn project.wsgi:application --bind 127.0.0.1:8000
 - WhiteNoise 在生产模式使用带哈希的压缩 manifest，静态资源缓存一年（`DJANGO_STATIC_MAX_AGE` 可覆盖）；
 - 启用 `DJANGO_SECURE_SSL=1` 后开启 HTTPS 跳转、Secure Cookie 与 HSTS；请在反向代理终止 TLS 并确认域名后再开启；
 - `requirements-prod.txt` 在基础依赖上加入 gunicorn；开发环境无需安装；
-- SQLite 适合单机演示；多实例/高并发部署需自行切换数据库并重新评估缓存与限流；
+- SQLite 适合当前 348 姓氏/6,251 人物/单 worker 的规模，无需数据库服务器；多 worker、持续高并发写或全文检索时再切换 PostgreSQL，并重新评估缓存与限流；
 - 不要在生产运行 `seed_demo`（演示弱口令），也不要提交 `db.sqlite3` 或真实 `.env`。
 
 ## 安全说明
