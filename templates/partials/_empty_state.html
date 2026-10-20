@@ -1,0 +1,7 @@
+<div class="empty-state">
+    <h2>{{ title|default:"暂无内容" }}</h2>
+    {% if description %}<p>{{ description }}</p>{% endif %}
+    {% if action_url and action_label %}
+        <p><a class="btn btn-secondary" href="{{ action_url }}">{{ action_label }}</a></p>
+    {% endif %}
+</div>

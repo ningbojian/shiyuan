@@ -6,5 +6,10 @@ __pycache__/
 .vscode/
 .DS_Store
 db.sqlite3
-staticfiles/
+staticfiles/*
+!staticfiles/.gitkeep
+backups/
+.dev-secret-key
+.superpowers/
 *.log
+.coverage

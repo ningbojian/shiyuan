@@ -1,0 +1,14 @@
+{% include "surname/_filter_form.html" %}
+
+<p class="result-count" role="status">共 {{ total_count }} 个姓氏{% if has_filters %}符合当前筛选{% endif %}。</p>
+
+{% if surnames %}
+    <ul class="card-grid">
+        {% for surname in surnames %}
+            {% include "surname/_surname_card.html" %}
+        {% endfor %}
+    </ul>
+    {% include "partials/_pagination.html" %}
+{% else %}
+    {% include "partials/_empty_state.html" with title="没有找到匹配的姓氏" description="换一个关键词或清除筛选后再试。" %}
+{% endif %}

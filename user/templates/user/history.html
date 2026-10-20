@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}浏览历史 · 氏源{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="面包屑">
+    <ol>
+        <li><a href="{% url 'user:personal' %}">个人中心</a></li>
+        <li aria-current="page">浏览历史</li>
+    </ol>
+</nav>
+
+<header class="page-header">
+    <p class="eyebrow">仅自己可见</p>
+    <h1>浏览历史</h1>
+    <p class="lede">登录后访问姓氏详情会自动记录，最多保留最近 50 条。</p>
+</header>
+
+{% if entries %}
+    <table>
+        <thead>
+            <tr>
+                <th scope="col">姓氏</th>
+                <th scope="col">最近浏览</th>
+                <th scope="col">次数</th>
+                <th scope="col"><span class="visually-hidden">操作</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in entries %}
+                <tr>
+                    <td><a href="{% url 'Surname:detail' entry.surname.slug %}">{{ entry.surname.second_name }}姓</a></td>
+                    <td>{{ entry.last_viewed_at|date:"Y-m-d H:i" }}</td>
+                    <td>{{ entry.view_count }}</td>
+                    <td>
+                        <form action="{% url 'user:history_delete' entry.pk %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="secondary">移除</button>
+                        </form>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% include "partials/_pagination.html" with page_obj=page_obj %}
+{% else %}
+    {% include "partials/_empty_state.html" with title="还没有浏览历史" description="登录后打开任意姓氏详情页，就会在这里留下最近阅读记录。" %}
+    <p><a class="btn" href="{% url 'Surname:list' %}">浏览姓氏目录</a></p>
+{% endif %}
+{% endblock %}

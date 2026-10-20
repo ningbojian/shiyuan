@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}姓氏目录 · 氏源{% endblock %}
+{% block meta_description %}按首字母、省份与关键词浏览氏源收录的姓氏目录。{% endblock %}
+{% block content %}
+<header class="page-header">
+    <p class="eyebrow">目录</p>
+    <h1>姓氏目录</h1>
+    <p class="lede">按拼音首字母、省份或关键词筛选，找到你想读的姓氏。</p>
+</header>
+
+{% include "surname/_directory.html" %}
+{% endblock %}

@@ -1,21 +1,67 @@
+from __future__ import annotations
+
 from django import forms
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+
+from user.models import Comment, Profile
 
 
-class UserCreatForm(forms.Form):
-    name = forms.CharField(
-        max_length=20,
-        error_messages={"required": "用户名不能为空", "max_length": "用户名不得超过20个字符"},
+class LoginForm(AuthenticationForm):
+    username = forms.CharField(
+        label="账号",
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={"autocomplete": "username", "autofocus": True}
+        ),
     )
-    account = forms.CharField(
-        max_length=20,
-        error_messages={"required": "账号不能为空", "max_length": "账号不得超过20个字符"},
+    password = forms.CharField(
+        label="密码",
+        strip=False,
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
     )
-    code = forms.CharField(
+    error_messages = {
+        "invalid_login": "账号或密码错误",
+        "inactive": "该账号已被停用",
+    }
+
+
+class RegisterForm(UserCreationForm):
+    display_name = forms.CharField(
+        label="显示名称",
         max_length=40,
-        min_length=6,
-        error_messages={
-            "required": "密码不能为空",
-            "max_length": "密码不得超过40个字符",
-            "min_length": "密码最少要有6个字符或数字",
-        },
+        required=False,
     )
+
+    class Meta(UserCreationForm.Meta):
+        fields = ("username",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].label = "账号"
+        self.fields["username"].widget.attrs.update(
+            {"autocomplete": "username", "autofocus": True}
+        )
+
+
+class ProfileForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ("display_name", "home_surname", "bio")
+        widgets = {"bio": forms.Textarea(attrs={"rows": 4})}
+
+
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ("content",)
+        widgets = {
+            "content": forms.Textarea(
+                attrs={"rows": 3, "maxlength": 1000, "placeholder": "写下你的看法"}
+            )
+        }
+
+    def clean_content(self) -> str:
+        content = self.cleaned_data["content"].strip()
+        if not content:
+            raise forms.ValidationError("评论不能为空。")
+        return content

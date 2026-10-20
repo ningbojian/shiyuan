@@ -1,0 +1,40 @@
+{% load static %}<!doctype html>
+<html lang="zh-Hans" data-theme="paper">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <link rel="icon" href="{% static 'Surname/img/logo.jpg' %}" type="image/jpeg">
+    <title>{% block title %}氏源{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}氏源：查姓氏源流、人物、迁徙与分布，读一段中国人的来处。{% endblock %}">
+    {% block canonical %}<link rel="canonical" href="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">{% endblock %}
+    {% block og_tags %}
+    <meta property="og:site_name" content="氏源">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="{% block og_title %}氏源 · 查找姓氏，读一段来处{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}查姓氏源流、人物、迁徙与分布，读一段中国人的来处。{% endblock %}">
+    <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{% block twitter_title %}氏源{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}查姓氏源流、人物、迁徙与分布。{% endblock %}">
+    {% endblock %}
+    {% block jsonld %}{% endblock %}
+    <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    <a class="skip-link" href="#main">跳到主要内容</a>
+    {% include "partials/_header.html" %}
+    {% include "partials/_messages.html" %}
+
+    <main id="main" class="site-main" tabindex="-1">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    {% include "partials/_footer.html" %}
+    <script src="{% static 'js/site.js' %}" defer></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

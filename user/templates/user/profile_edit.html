@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}编辑资料 · 氏源{% endblock %}
+{% block content %}
+<div class="narrow">
+<h1>编辑资料</h1>
+<form method="post" novalidate>
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  {% for field in form %}
+    <p>
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% for error in field.errors %}<span role="alert">{{ error }}</span>{% endfor %}
+    </p>
+  {% endfor %}
+  <button type="submit">保存</button>
+  <a href="{% url 'user:personal' %}">返回</a>
+</form>
+</div>
+{% endblock %}

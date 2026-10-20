@@ -1,10 +1,11 @@
-{% extends "surname/base.html" %}
+{% extends "base.html" %}
 {% block title %}公告 | 氏源{% endblock %}
 {% block content %}
 <h1>项目公告</h1>
 <div class="panel">
     <p>这是氏源课程项目的整理版演示站，用于展示数据库设计、Django 开发和数据可视化流程。</p>
-    <p>演示数据只包含李、王、张、丁四个姓氏；运行 <code>python scripts/seed_demo.py</code> 可以重建示例数据。</p>
-    <p>评论功能为课程原型：当前接口使用 GET 查询参数，生产环境应改为 POST + CSRF，并对评论做审核。</p>
+    <p>当前目录收录 33 个姓氏。开发环境可运行 <code>python manage.py seed_demo</code> 重建省份、朝代、姓氏与演示账号；生产环境请勿创建演示账号。</p>
+    <p>评论仅允许登录用户通过 POST + CSRF 提交，删除评论校验本人身份，管理员可隐藏评论。姓氏资料与分布强度均为演示内容，非权威统计。</p>
+    <p>数据来源、字段说明与再生成方式见 <a href="{% url 'Surname:information' %}">项目资料</a> 与仓库内 <code>docs/DATA.md</code>。</p>
 </div>
 {% endblock %}

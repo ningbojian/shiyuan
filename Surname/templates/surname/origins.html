@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}源流总览 · 氏源{% endblock %}
+{% block meta_description %}按源出、分支、改姓、同源四类关系浏览姓氏之间的源流脉络，并查看宗族节点说明。{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="面包屑">
+    <ol>
+        <li><a href="/">首页</a></li>
+        <li aria-current="page">源流总览</li>
+    </ol>
+</nav>
+
+<header class="page-header">
+    <p class="eyebrow">姓氏之间</p>
+    <h1>源流总览</h1>
+    <p class="lede">姓氏并非彼此孤立。这里汇总目录中的宗族节点与姓氏关系，按“源出、分支、改姓、同源”四类展示。</p>
+</header>
+
+<div class="panel">
+    <dl class="stats-row">
+        <div><dt>宗族节点</dt><dd>{{ clans|length }}</dd></div>
+        <div><dt>关系条目</dt><dd>{{ relations|length }}</dd></div>
+    </dl>
+    <p class="muted">关系资料为课程演示整理，用于说明姓氏脉络，不作为族谱或学术依据。</p>
+</div>
+
+<section class="section" aria-labelledby="relation-types">
+    <h2 id="relation-types">四类关系</h2>
+    <div class="grid">
+        <div class="panel"><h3>源出</h3><p>一个姓氏可追溯到某个早期宗族或封国。</p></div>
+        <div class="panel"><h3>分支</h3><p>同一源流下分出的支系，后来形成新的姓氏。</p></div>
+        <div class="panel"><h3>改姓</h3><p>因避讳、赐姓、迁徙等原因改用另一姓氏。</p></div>
+        <div class="panel"><h3>同源</h3><p>两个姓氏共享同一早期来源，但不存在直接分支关系。</p></div>
+    </div>
+</section>
+
+<section class="section" aria-labelledby="relations-title">
+    <h2 id="relations-title">姓氏关系</h2>
+    {% if relation_graph.nodes %}
+        <figure class="chart-block" data-chart="origins" data-detail-base="{% url 'Surname:list' %}">
+            <div class="chart-canvas" data-chart-canvas role="img" aria-label="姓氏与宗族源流关系图"></div>
+            <figcaption class="muted">图为演示关系网络，点击姓氏节点可进入对应详情页；宗族节点不跳转。</figcaption>
+        </figure>
+    {% endif %}
+    {% if relations %}
+        <details class="chart-data" open>
+            <summary>查看源流数据表</summary>
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col">姓氏</th>
+                    <th scope="col">关系</th>
+                    <th scope="col">目标</th>
+                    <th scope="col">说明</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for relation in relations %}
+                    <tr>
+                        <td><a href="{% url 'Surname:detail' relation.source.slug %}">{{ relation.source.second_name }}姓</a></td>
+                        <td>{{ relation.get_relation_type_display }}</td>
+                        <td>
+                            {% if relation.target_surname %}
+                                <a href="{% url 'Surname:detail' relation.target_surname.slug %}">{{ relation.target_surname.second_name }}姓</a>
+                            {% else %}
+                                {{ relation.target_clan.name }}
+                            {% endif %}
+                        </td>
+                        <td>{{ relation.description|default:"—" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </details>
+        <p class="muted">关系图中的连线与上表一一对应；详情页只展示以该姓氏为起点的关系。</p>
+    {% else %}
+        {% include "partials/_empty_state.html" with title="暂无源流关系" description="运行 seed_demo 载入演示目录后，这里会显示姓氏之间的关系。" %}
+    {% endif %}
+</section>
+
+<section class="section" aria-labelledby="clans-title">
+    <h2 id="clans-title">宗族节点</h2>
+    {% if clans %}
+        <table>
+            <thead>
+                <tr>
+                    <th scope="col">名称</th>
+                    <th scope="col">类型</th>
+                    <th scope="col">说明</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for clan in clans %}
+                    <tr>
+                        <td>{{ clan.name }}</td>
+                        <td>{{ clan.get_kind_display }}</td>
+                        <td>{{ clan.description|default:"—" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="muted">暂无宗族节点。</p>
+    {% endif %}
+</section>
+
+<div class="panel">
+    <p>想从具体姓氏读起？<a href="{% url 'Surname:list' %}">浏览姓氏目录</a>。</p>
+</div>
+{{ relation_graph|json_script:"origins-data" }}
+{% endblock %}
+
+{% block scripts %}
+{% if relation_graph.nodes %}
+<script src="{% static 'vendor/echarts/echarts.min.js' %}" defer></script>
+<script src="{% static 'js/charts.js' %}" defer></script>
+{% endif %}
+{% endblock %}

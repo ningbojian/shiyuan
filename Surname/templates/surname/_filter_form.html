@@ -1,0 +1,26 @@
+<form class="filter-form" method="get" action="{{ request.path }}" role="search">
+    <div class="filter-field filter-field-wide">
+        <label for="{{ form.q.id_for_label }}">{{ form.q.label }}</label>
+        {{ form.q }}
+        {{ form.q.errors }}
+    </div>
+    <div class="filter-field">
+        <label for="{{ form.initial.id_for_label }}">{{ form.initial.label }}</label>
+        {{ form.initial }}
+        {{ form.initial.errors }}
+    </div>
+    <div class="filter-field">
+        <label for="{{ form.province.id_for_label }}">{{ form.province.label }}</label>
+        {{ form.province }}
+        {{ form.province.errors }}
+    </div>
+    <div class="filter-field">
+        <label for="{{ form.sort.id_for_label }}">{{ form.sort.label }}</label>
+        {{ form.sort }}
+        {{ form.sort.errors }}
+    </div>
+    <div class="filter-actions">
+        <button type="submit">筛选</button>
+        {% if has_filters %}<a href="{{ request.path }}">清除筛选</a>{% endif %}
+    </div>
+</form>

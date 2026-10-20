@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}历史人物 · 氏源{% endblock %}
+{% block meta_description %}按姓氏与朝代浏览氏源收录的历史人物，进入人物详情查看生卒、简介与同朝代人物。{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="面包屑">
+    <ol>
+        <li><a href="/">首页</a></li>
+        <li aria-current="page">历史人物</li>
+    </ol>
+</nav>
+
+<header class="page-header">
+    <p class="eyebrow">姓氏 · 人物</p>
+    <h1>历史人物</h1>
+    <p class="lede">按姓氏与朝代浏览人物条目。人物资料为课程演示整理，生卒年与事迹请以权威史料为准。</p>
+</header>
+
+<form class="filter-form" method="get" action="{% url 'Surname:figures' %}">
+    <label for="figure-dynasty">朝代</label>
+    <select id="figure-dynasty" name="dynasty">
+        <option value="">全部朝代</option>
+        {% for dynasty in dynasties %}
+            <option value="{{ dynasty.slug }}"{% if dynasty.slug == dynasty_filter %} selected{% endif %}>{{ dynasty.name }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="figure-surname">姓氏</label>
+    <select id="figure-surname" name="surname">
+        <option value="">全部姓氏</option>
+        {% for surname in surnames %}
+            <option value="{{ surname.slug }}"{% if surname.slug == surname_filter %} selected{% endif %}>{{ surname.second_name }}姓</option>
+        {% endfor %}
+    </select>
+
+    <button type="submit">筛选</button>
+    {% if has_filters %}<a class="btn btn-secondary" href="{% url 'Surname:figures' %}">清除筛选</a>{% endif %}
+</form>
+
+<p class="result-count" aria-live="polite">共 {{ total_count }} 位人物</p>
+
+{% if figures %}
+    <ul class="card-grid figure-card-grid">
+        {% for figure in figures %}
+            <li>
+                <div class="surname-card figure-card">
+                    <a class="figure-card-link" href="{% url 'Surname:figure_detail' figure.slug %}">
+                        <span class="name">{{ figure.name }}</span>
+                        <span class="meta">
+                            {{ figure.dynasty.name|default:"时期不详" }}
+                            {% if figure.birth_year or figure.death_year %} · {{ figure.birth_year|default:"?" }}—{{ figure.death_year|default:"?" }}{% endif %}
+                        </span>
+                        <span class="card-summary">{{ figure.info|truncatechars:72 }}</span>
+                    </a>
+                    <a class="card-stats" href="{% url 'Surname:detail' figure.surname.slug %}">属 {{ figure.surname.second_name }}姓</a>
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+
+    {% include "partials/_pagination.html" with page_obj=page_obj %}
+{% else %}
+    {% include "partials/_empty_state.html" with title="没有找到匹配的人物" description="试试更换朝代或姓氏筛选，或清除筛选后重新浏览。" %}
+{% endif %}
+{% endblock %}

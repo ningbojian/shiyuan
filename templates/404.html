@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}页面没有找到 · 氏源{% endblock %}
+{% block meta_description %}请求的页面不存在。返回姓氏目录继续浏览。{% endblock %}
+{% block content %}
+<section class="section">
+    <p class="eyebrow">404</p>
+    <h1>没有找到这个页面</h1>
+    <p>链接可能已经失效，或者这个姓氏尚未收录。</p>
+    <p>
+        <a class="btn" href="{% url 'Surname:list' %}">返回姓氏目录</a>
+        <a class="btn btn-secondary" href="/">回到首页</a>
+    </p>
+</section>
+{% endblock %}

@@ -1,127 +1,67 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>个人中心 | 氏源</title>
-    <style>
-        :root { --ink:#3f4438; --muted:#7c7765; --paper:#f7f4ec; --line:#ded7c6; --accent:#9b6f45; }
-        * { box-sizing: border-box; }
-        body { margin:0; font-family:"Microsoft YaHei","PingFang SC",sans-serif; color:var(--ink); background:var(--paper); }
-        header { display:flex; align-items:center; justify-content:space-between; padding:16px 5vw; border-bottom:1px solid var(--line); background:#fffdf7; }
-        .brand { display:flex; align-items:center; gap:10px; font-size:22px; font-weight:700; color:var(--ink); text-decoration:none; }
-        .brand img { width:36px; height:36px; object-fit:cover; border-radius:50%; border:1px solid var(--line); }
-        nav { display:flex; flex-wrap:wrap; gap:16px; font-size:14px; }
-        nav a { color:var(--muted); text-decoration:none; }
-        nav a:hover { color:var(--accent); }
-        main { max-width:980px; margin:0 auto; padding:40px 22px 70px; }
-        h1 { font-size:32px; margin:0 0 18px; }
-        .panel { background:#fffdf8; border:1px solid var(--line); border-radius:12px; padding:22px 24px; margin:16px 0; }
-        .profile { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
-        .label { color:var(--muted); font-size:12px; }
-        .value { font-size:17px; margin-top:4px; }
-        .toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
-        .btn { display:inline-block; padding:8px 14px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink); text-decoration:none; font-size:13px; cursor:pointer; }
-        .btn:hover { border-color:var(--accent); color:var(--accent); }
-        .comment-form { display:flex; gap:10px; margin-top:8px; }
-        .comment-form textarea { flex:1; min-height:64px; padding:10px; border:1px solid var(--line); border-radius:8px; font-family:inherit; font-size:14px; color:var(--ink); resize:vertical; }
-        .comment-form button { padding:0 20px; border:0; border-radius:8px; background:var(--ink); color:#fff; cursor:pointer; }
-        .comment-form button:hover { background:var(--accent); }
-        ul.comments { list-style:none; padding:0; margin:10px 0 0; }
-        ul.comments li { display:flex; justify-content:space-between; gap:12px; padding:12px 0; border-bottom:1px dashed var(--line); color:var(--muted); font-size:14px; }
-        ul.comments li:last-child { border-bottom:0; }
-        .del { color:#a34b36; background:none; border:0; cursor:pointer; font-size:12px; }
-        .hint { color:var(--muted); font-size:12px; line-height:1.7; }
-        footer { text-align:center; color:var(--muted); font-size:12px; padding:20px; border-top:1px solid var(--line); }
-        @media (max-width:760px) { .profile { grid-template-columns:1fr; } .comment-form { flex-direction:column; } .comment-form button { padding:10px; } }
-    </style>
-</head>
-<body>
-<header>
-    <a class="brand" href="{% url 'user:index' %}"><img src="{% static 'img/logo.jpg' %}" alt="氏源">氏源</a>
-    <nav>
-        <a href="{% url 'user:index' %}">首页</a>
-        <a href="{% url 'surname:search' %}">姓氏搜索</a>
-        <a href="{% url 'surname:information' %}">项目资料</a>
-        <a href="{% url 'user:logout' %}">退出登录</a>
-    </nav>
+{% extends "base.html" %}
+{% block title %}个人中心 · 氏源{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="面包屑">
+    <ol>
+        <li aria-current="page">个人中心</li>
+    </ol>
+</nav>
+
+<header class="page-header">
+    <p class="eyebrow">账号</p>
+    <h1>个人中心</h1>
+    <p class="lede">管理资料与密码，查看自己的收藏、浏览历史和评论。</p>
 </header>
 
-<main>
-    <div class="toolbar">
-        <h1>个人中心</h1>
-        <a class="btn" href="{% url 'surname:search' %}">去搜索姓氏</a>
-    </div>
+<div class="panel">
+    <dl>
+        <dt>账号</dt>
+        <dd>{{ user.username }}</dd>
+        <dt>显示名称</dt>
+        <dd>{{ profile.display_name|default:"未设置" }}</dd>
+        <dt>关注姓氏</dt>
+        <dd>
+            {% if profile.home_surname %}
+                <a href="{% url 'Surname:detail' profile.home_surname.slug %}">{{ profile.home_surname.second_name }}姓</a>
+            {% else %}未设置{% endif %}
+        </dd>
+        <dt>支持者</dt>
+        <dd>{% if profile.is_supporter %}是{% else %}否{% endif %}</dd>
+    </dl>
+    {% if profile.bio %}<p>{{ profile.bio|linebreaksbr }}</p>{% endif %}
+    <p>
+        <a class="btn btn-secondary" href="{% url 'user:profile_edit' %}">编辑资料</a>
+        <a class="btn btn-secondary" href="{% url 'user:password_change' %}">修改密码</a>
+    </p>
+</div>
 
-    <section class="panel profile">
-        <div><div class="label">账号</div><div class="value">{{ user.account }}</div></div>
-        <div><div class="label">用户名</div><div class="value">{{ user.name }}</div></div>
-        <div><div class="label">姓氏</div><div class="value">{{ user.surname|default:"未填写" }}</div></div>
-    </section>
+<dl class="stats-row">
+    <div><dt>收藏</dt><dd><a href="{% url 'user:favorites' %}">{{ favorite_count }}</a></dd></div>
+    <div><dt>浏览历史</dt><dd><a href="{% url 'user:history' %}">{{ history_count }}</a></dd></div>
+    <div><dt>我的评论</dt><dd>{{ comment_count }}</dd></div>
+</dl>
 
-    <section class="panel">
-        <div class="toolbar">
-            <h2 style="margin:0;font-size:19px;color:var(--accent);">我的评论</h2>
-            <span class="hint">课程原型：评论接口使用 GET 参数</span>
-        </div>
-        <form class="comment-form" id="comment-form">
-            <textarea id="comment-content" maxlength="200" placeholder="写一条演示评论……" required></textarea>
-            <button type="submit">发表</button>
-        </form>
-        <ul class="comments" id="comment-list"><li>加载中……</li></ul>
-    </section>
-
-    <p class="hint">提示：这是课程作业重建版，账号和评论只存在本地 SQLite 演示库；请不要使用真实密码。</p>
-</main>
-
-<footer>氏源 · 数据库课程项目展示</footer>
-
-<script>
-    const account = "{{ user.account|escapejs }}";
-    const list = document.getElementById("comment-list");
-    const form = document.getElementById("comment-form");
-    const input = document.getElementById("comment-content");
-
-    async function loadComments() {
-        const response = await fetch("/user/comment/?action=find&account=" + encodeURIComponent(account));
-        const data = await response.json();
-        const messages = data.msg || [];
-        if (!messages.length) {
-            list.innerHTML = "<li>还没有评论，写一条试试。</li>";
-            return;
-        }
-        list.innerHTML = messages.map(function (message) {
-            return "<li><span>" + escapeHtml(message) + "</span>" +
-                   "<button class='del' data-content='" + encodeURIComponent(message) + "'>删除</button></li>";
-        }).join("");
-    }
-
-    function escapeHtml(text) {
-        return String(text).replace(/[&<>"']/g, function (char) {
-            return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[char];
-        });
-    }
-
-    form.addEventListener("submit", async function (event) {
-        event.preventDefault();
-        const content = input.value.trim();
-        if (!content) return;
-        await fetch("/user/comment/?action=add&account=" + encodeURIComponent(account) +
-                    "&content=" + encodeURIComponent(content));
-        input.value = "";
-        loadComments();
-    });
-
-    list.addEventListener("click", async function (event) {
-        if (!event.target.classList.contains("del")) return;
-        const content = decodeURIComponent(event.target.dataset.content || "");
-        await fetch("/user/comment/?action=delete&account=" + encodeURIComponent(account) +
-                    "&content=" + encodeURIComponent(content));
-        loadComments();
-    });
-
-    loadComments();
-</script>
-</body>
-</html>
+<section class="section" aria-labelledby="recent-comments-title">
+    <h2 id="recent-comments-title">最近评论</h2>
+    {% if recent_comments %}
+        <ul class="comment-list">
+            {% for comment in recent_comments %}
+                <li>
+                    <p class="muted">
+                        <a href="{% url 'Surname:detail' comment.surname.slug %}">{{ comment.surname.second_name }}姓</a>
+                        · {{ comment.created_at|date:"Y-m-d H:i" }}
+                        {% if comment.status == "hidden" %} · 已被隐藏{% endif %}
+                    </p>
+                    <p>{{ comment.content|linebreaksbr }}</p>
+                    <form action="{% url 'user:comment_delete' comment.pk %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="secondary">删除</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="muted">还没有发表过评论。</p>
+    {% endif %}
+</section>
+{% endblock %}

@@ -1,267 +1,429 @@
-﻿import json
-import pickle
-from pathlib import Path
+﻿from string import ascii_uppercase
 
-from django.http import HttpResponse
-from django.shortcuts import render
-from django.views import View
-from pyecharts import options as opts
-from pyecharts.charts import Map, Timeline
+from django.core.paginator import Paginator
+from django.db.models import Count, F, Prefetch, Q
+from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.utils.html import strip_tags
 
-from Surname.models import Dynasty, Province, SecondName
-
-WORD_FILE = Path(__file__).resolve().parent / "static/Surname/model/word"
-try:
-    with WORD_FILE.open("rb") as handle:
-        WORD_ = pickle.load(handle)
-except (FileNotFoundError, EOFError, pickle.UnpicklingError):
-    # The word-cloud model is generated from the course dataset; the app
-    # should still render if it is missing.
-    WORD_ = {}
-
-"""
-    用于对姓氏的一系列操作进行响应
-    Map:用于处理各个姓氏的分布数据的相应
-    Surname : 用于处理各个姓氏的基本数据的响应
-    wordCloud:用于返回词云图对应的数据
-    famous:用于返回对应姓氏的名人信息
-    所有函数均需参数: surname(请求数据的姓氏)
-    错误返回 : err
-"""
+from Surname.forms import SurnameFilterForm
+from Surname.models import (
+    Clan,
+    Distribution,
+    Dynasty,
+    Famous,
+    MigrationEvent,
+    Province,
+    SecondName,
+    SurnameRelation,
+)
+from user.forms import CommentForm
+from user.models import Comment, Favorite
+from user.services import record_history
 
 
-class surnameAction(View):
-    def get(self, request):
-        surname = request.GET.get('surname')
-        if not surname:
-            response = HttpResponse(json.dumps({'err': "没有姓氏"}), status=400)
-            return response
-        def deal(content, token, emp):
-            value = ""
-            for item in (content or "").split(token):
-                if emp in item:
-                    head, _, tail = item.partition(emp)
-                    value += f"<b>{head}</b>{emp}{tail}<br>"
-                else:
-                    value += f"<b>{item}</b><br>"
-            return value
-        data = SecondName.objects.filter(second_name=surname)
-        if data.count() == 0:
-            response = HttpResponse(json.dumps({'err': "没有姓氏"}), status=400)
-            return response
-        data = data[0]
-        data.fam = deal(data.fam , '\n'  ,"：")
-        data.cul = deal(data.cul , '\n'  ,"：")
-        origin = ""
-        for i in data.ori.split('\n'):
-            if len(i) <= 5 and '源出' in i:
-                origin += '<b>' + i +'</b>'
-            else:
-                origin += i
-            origin += '<br>'
-        data.ori = origin
-        mapData = self.Map(surname)
-        wordCloudData = self.wordCloud(surname)
-        treeData = self.famousTree(surname)
-        node , link = self.getNeighbor(surname)
-        mig = get_dynasty_migration(data.mig)
-        tl = None
-        if  len(mig):
-            tl = Timeline()
-            for i in mig:
-                tmp_data = []
-                for k in mig[i]:
-                    tmp_data.append([k , 1])
-                map0 = (
-                    Map()
-                        .add("姓氏路径图", tmp_data, "china")
-                        .set_global_opts(
-                        visualmap_opts=opts.VisualMapOpts(is_show=False)
-                    )
-                )
-                tl.add(map0, "{}".format(i))
-        return render(request, 'surname/index.html', {'surname': data,
-                                                      'mapData': mapData,
-                                                      'wordCloudData': wordCloudData,
-                                                      'treeData': treeData,
-                                                      'link' : link,
-                                                      'node' : node,
-                                                       'graph' : tl.render_embed() if tl else ""})
+def _relation_graph(relations, source_label=None, source_slug=None):
+    """Turn relation rows into the node/edge shape used by the graph charts."""
+    nodes = {}
+    edges = []
 
+    def surname_node(second_name, slug):
+        label = f"{second_name}姓"
+        nodes.setdefault(label, {"name": label, "slug": slug, "category": 0})
+        return label
+
+    for relation in relations:
+        if source_label:
+            source = source_label
+            nodes.setdefault(
+                source, {"name": source, "slug": source_slug, "category": 0}
+            )
+        else:
+            source = surname_node(
+                relation.source.second_name, relation.source.slug
+            )
+        if relation.target_surname:
+            target = surname_node(
+                relation.target_surname.second_name,
+                relation.target_surname.slug,
+            )
+        else:
+            target = relation.target_clan.name
+            nodes.setdefault(
+                target, {"name": target, "slug": None, "category": 1}
+            )
+        edges.append(
+            {
+                "source": source,
+                "target": target,
+                "label": relation.get_relation_type_display(),
+                "description": relation.description,
+            }
+        )
+
+    return {
+        "nodes": list(nodes.values()),
+        "edges": edges,
+        "categories": [{"name": "姓氏"}, {"name": "宗族"}],
+    }
+
+
+def _chart_payloads(surname):
+    """Build JSON-safe chart data from already-prefetched related rows."""
+    distributions = [
+        {
+            "name": row.province.map_name or row.province.short_name or row.province.name,
+            "value": row.intensity,
+            "province": row.province.name,
+        }
+        for row in surname.distributions.all()
+    ]
+
+    migration = []
+    for event in surname.migration_events.all():
+        migration.append(
+            {
+                "dynasty": event.dynasty.name if event.dynasty else "时期不详",
+                "description": event.description,
+                "from_name": event.from_province.name if event.from_province else "",
+                "from_coord": (
+                    [event.from_province.center_lng, event.from_province.center_lat]
+                    if event.from_province
+                    else None
+                ),
+                "to_name": event.to_province.name if event.to_province else "",
+                "to_coord": (
+                    [event.to_province.center_lng, event.to_province.center_lat]
+                    if event.to_province
+                    else None
+                ),
+            }
+        )
+
+    source_label = f"{surname.second_name}姓"
+    relations = _relation_graph(
+        surname.outgoing_relations.all(),
+        source_label=source_label,
+        source_slug=surname.slug,
+    )
+    if not relations["edges"]:
+        relations = {"nodes": [], "edges": [], "categories": []}
+
+    keywords = [
+        {"name": item["name"], "value": item["value"]}
+        for item in surname.keywords
+        if isinstance(item, dict)
+        and isinstance(item.get("name"), str)
+        and item["name"].strip()
+        and isinstance(item.get("value"), int)
+        and not isinstance(item.get("value"), bool)
+        and 1 <= item["value"] <= 100
+    ]
+
+    return {
+        "distribution": distributions,
+        "migration": migration,
+        "relations": relations,
+        "keywords": keywords,
+    }
+
+
+def _seo_description(text: str, limit: int = 300) -> str:
+    return strip_tags(text or "").strip()[:limit]
+
+
+def _webpage_jsonld(request, *, name: str, description: str) -> dict:
+    url = request.build_absolute_uri(request.path)
+    return {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": name,
+        "description": description,
+        "url": url,
+        "inLanguage": "zh-Hans",
+        "isPartOf": {
+            "@type": "WebSite",
+            "name": "氏源",
+            "url": request.build_absolute_uri("/"),
+        },
+    }
+
+
+def _person_jsonld(request, figure) -> dict:
+    url = request.build_absolute_uri(request.path)
+    return {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": figure.name,
+        "description": _seo_description(figure.info),
+        "url": url,
+        "mainEntityOfPage": {"@type": "WebPage", "url": url},
+    }
+
+
+def home(request):
+    """Landing page: search, letter index, featured surnames, daily pick."""
+    featured = list(
+        SecondName.objects.filter(is_featured=True).order_by(
+            "-popularity", "second_name"
+        )[:6]
+    )
+    total = SecondName.objects.count()
+    daily = None
+    if total:
+        offset = timezone.localdate().toordinal() % total
+        daily = SecondName.objects.order_by("second_name")[offset]
+
+    counts = {
+        row["initial"]: row["count"]
+        for row in SecondName.objects.values("initial").annotate(count=Count("pk"))
+    }
+    initials = [
+        {"letter": letter, "count": counts.get(letter, 0)}
+        for letter in ascii_uppercase
+    ]
+    stats = {
+        "surnames": total,
+        "figures": Famous.objects.count(),
+        "provinces": Province.objects.count(),
+    }
+    return render(
+        request,
+        "surname/home.html",
+        {
+            "featured": featured,
+            "daily": daily,
+            "initials": initials,
+            "stats": stats,
+        },
+    )
+
+
+def index(request):
+    """Redirect the legacy query-string detail URL to the slug detail URL."""
+    second_name = request.GET.get("surname")
+    if not second_name:
+        raise Http404("没有姓氏")
+    surname = get_object_or_404(SecondName, second_name=second_name)
+    return redirect("Surname:detail", slug=surname.slug)
+
+
+def surname_detail(request, slug):
+    """Render one surname's detail page.
+
+    All surname text is rendered as escaped plain text. The view counter is
+    updated in a single query so charts or helper functions cannot increment
+    it again.
     """
-        用于处理各个姓氏的分布数据的相应
-    """
-
-    def Map(self, surname):
-        data = SecondName.objects.filter(second_name=surname).first()
-        if data is None:
-            return {"data": [], "min": 0, "max": 0}
-        data.count += 1
-        data.save(update_fields=["count"])
-        ratio = data.D_surname.all()
-        province = Province.objects.all()
-        values = []
-        minimum = 10000.0
-        maximum = 0.0
-        for item in province:
-            matches = list(ratio & item.D_province.all())
-            value = float(matches[0].ratio * 100) if matches else 0.0
-            minimum = min(value, minimum)
-            maximum = max(value, maximum)
-            values.append({"name": item.name.split("省")[0], "value": value})
-        if not values:
-            minimum = 0.0
-        return {"data": values, "min": minimum, "max": maximum}
-
-    """
-        用于处理各个姓氏的基本数据的响应
-    """
-
-    def Surname(self, surname):
-        data = SecondName.objects.filter(second_name=surname)
-        content = data[0]
-        content.count += 1
-        content.save()
-        data = {}
-        for i in SecondName._meta.fields:
-            data[str(i).split('.')[-1]] = content.serializable_value(str(i).split('.')[-1])
-        return data
-
-    """
-        用于返回词云图对应的数据
-    """
-
-    def wordCloud(self, surname):
-        raw = WORD_.get(surname, [])
-        return [
-            {"name": str(item.get("name", "")), "value": float(item.get("value", 0))}
-            for item in raw
-        ]
-
-    """
-        用于返回对应姓氏的名人信息
-    """
-
-    def famousTree(self, surname):
-        data = SecondName.objects.filter(second_name=surname)
-        data = data[0]
-        data.count += 1
-        data.save()
-        people = data.F_surname.all()
-        dynasty = Dynasty.objects.all()
-        data = []
-        for j in dynasty:
-            tmp = people & j.F_dynasty.all()
-            content = {}
-            content['value'] = tmp.count()
-            content['name'] = j.name
-            if tmp.count():
-                content['children'] = []
-                for k in tmp:
-                    children = {}
-                    children['name'] = k.name
-                    children['value'] = 1
-                    content['children'].append(children)
-            data.append(content)
-        return data
-
-    def getNeighbor(self,surname):
-        data = SecondName.objects.filter(second_name=surname)
-        data = data[0]
-        node = []
-        link = []
-        for i in data.father_surname.all():
-            if i.second_name == surname:
-                continue
-            node.append({"name" : i.second_name , "symbolSize": 10})
-            link.append({"source" : i.second_name , "target" : surname , 'relation' : {'name' : "祖先"}})
-        # for i in data.children.all():
-        #     if i.second_name == surname:
-        #         continue
-        #     node.append({'name': i.second_name, "value": 10})
-        #     link.append({'source': surname, 'target': i.second_name})
-        node.append({"name": surname, "symbolSize": 50})
-        return [node , link]
-    def announce(request):
-        return render(request , 'surname/announce.html')
-    def developer(request):
-        return render(request , 'surname/developer.html')
-    def information(request):
-        return render(request , 'surname/information.html')
-    def introduction(request):
-        return render(request , 'surname/introduction.html')
-    def origin(request):
-        return render(request , 'surname/origin.html')
-    def science(request):
-        return render(request , 'surname/science.html')
-    def search(request):
-        top = SecondName.objects.all()
-        top = top.order_by('-count')
-        return render(request , 'surname/search.html' , {'hot' : top[:10]})
-
-def split_sents(para: str):
-    sents = []
-    start_ind = 0
-    for i in range(len(para)):
-        w = para[i]
-        if w == '。' or w == ';' or w == '\r':
-            if i > start_ind:
-                s = para[start_ind:i]
-                if s != '':
-                    sents.append(s)
-            if w == '\r':
-                i += 1
-            start_ind = i + 1
-
-    if len(para) > start_ind:
-        s = para[start_ind:]
-        if s != '':
-            sents.append(s)
-
-    return sents
+    surname = get_object_or_404(
+        SecondName.objects.prefetch_related(
+            Prefetch(
+                "distributions",
+                queryset=Distribution.objects.select_related("province").order_by(
+                    "-intensity", "province__name"
+                ),
+            ),
+            Prefetch(
+                "figures",
+                queryset=Famous.objects.select_related("dynasty").order_by(
+                    "dynasty__order", "order", "name"
+                ),
+            ),
+            Prefetch(
+                "migration_events",
+                queryset=MigrationEvent.objects.select_related(
+                    "dynasty", "from_province", "to_province"
+                ).order_by("dynasty__order", "order"),
+            ),
+            Prefetch(
+                "outgoing_relations",
+                queryset=SurnameRelation.objects.select_related(
+                    "target_surname", "target_clan"
+                ),
+            ),
+            Prefetch(
+                "comments",
+                queryset=Comment.objects.filter(status="visible")
+                .select_related("user", "user__profile")
+                .order_by("-created_at"),
+            ),
+        ),
+        slug=slug,
+    )
+    SecondName.objects.filter(pk=surname.pk).update(view_count=F("view_count") + 1)
+    is_favorite = False
+    if request.user.is_authenticated:
+        is_favorite = Favorite.objects.filter(
+            user=request.user, surname=surname
+        ).exists()
+        record_history(request.user, surname)
+    return render(
+        request,
+        "surname/index.html",
+        {
+            "surname": surname,
+            "comments": surname.comments.all(),
+            "comment_form": CommentForm(),
+            "is_favorite": is_favorite,
+            "chart_payloads": _chart_payloads(surname),
+            "jsonld": _webpage_jsonld(
+                request,
+                name=f"{surname.second_name}姓",
+                description=_seo_description(
+                    surname.summary or surname.base_information
+                ),
+            ),
+        },
+    )
 
 
-def get_dynasty_migration(migration_history, show_details=False):
-    migration_history = migration_history or ""
-    dynasties_find = '夏,商,周,秦,汉,三国,晋,南朝,北朝,南北朝,隋,唐,五代,十国,宋,金,元,明,清,民国'.split(',')
-    dynasties = '夏朝,商（殷）朝,周朝,春秋战国,秦朝,汉朝,三国时期,晋朝,南北朝,隋朝,唐朝,五代十国,宋朝,元朝,明朝,清朝,中华民国,中华人民共和国'.split(',')
-    provinces = '内蒙古,新疆,广西,西藏,重庆,北京,天津,澳门,香港,河北,山西,吉林,辽宁,黑龙江,陕西,甘肃,青海,' \
-                '山东,福建,浙江,台湾,河南,湖北,湖南,江西,江苏,安徽,广东,海南,四川,贵州,云南,宁夏,上海'.split(',')
+def announce(request):
+    return render(request, "surname/announce.html")
 
-    sents = split_sents(migration_history)
-    migration_locations = {}
-    # dynasty_locations = []
-    validation = []
-    time_ind = 0
-    for i in range(len(sents)):
-        s = sents[i]
 
-        find_dynasties = []
-        for dy_ind, d in enumerate(dynasties_find):
-            if d in s and dy_ind >= time_ind:
-                find_dynasties.append(d)
-                time_ind = dy_ind
+def developer(request):
+    return render(request, "surname/developer.html")
 
-        if len(find_dynasties) == 0:
-            continue
 
-        find_provinces = []
-        for p in provinces:
-            if p in s:
-                find_provinces.append(p)
+def information(request):
+    return render(request, "surname/information.html")
 
-        if len(find_provinces) == 0:
-            continue
 
-        for d in find_dynasties:
-            for p in find_provinces:
-                for dy in dynasties:
-                    if d in dy:
-                        loc_set = migration_locations.setdefault(dy, [])
-                        loc_set.append(p)
-        validation.append([s, find_dynasties, find_provinces])
+def introduction(request):
+    return render(request, "surname/introduction.html")
 
-    if show_details:
-        for item in validation:
-            print(item)
-    return migration_locations
+
+def science(request):
+    return render(request, "surname/science.html")
+
+
+def figure_list(request):
+    """Browse historical figures, filterable by dynasty and surname."""
+    queryset = Famous.objects.select_related("surname", "dynasty")
+    dynasty_slug = (request.GET.get("dynasty") or "").strip()
+    surname_slug = (request.GET.get("surname") or "").strip()
+    if dynasty_slug:
+        queryset = queryset.filter(dynasty__slug=dynasty_slug)
+    if surname_slug:
+        queryset = queryset.filter(surname__slug=surname_slug)
+    queryset = queryset.order_by(
+        "surname__second_name", "dynasty__order", "order", "name"
+    )
+
+    paginator = Paginator(queryset, 24)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    dynasties = Dynasty.objects.filter(figures__isnull=False).distinct()
+    surnames = (
+        SecondName.objects.filter(figures__isnull=False)
+        .distinct()
+        .order_by("second_name")
+    )
+    return render(
+        request,
+        "surname/figures.html",
+        {
+            "page_obj": page_obj,
+            "figures": page_obj.object_list,
+            "total_count": paginator.count,
+            "dynasties": dynasties,
+            "surnames": surnames,
+            "dynasty_filter": dynasty_slug,
+            "surname_filter": surname_slug,
+            "has_filters": bool(dynasty_slug or surname_slug),
+        },
+    )
+
+
+def figure_detail(request, slug):
+    figure = get_object_or_404(
+        Famous.objects.select_related("surname", "dynasty"), slug=slug
+    )
+    same_dynasty = Famous.objects.none()
+    if figure.dynasty_id:
+        same_dynasty = (
+            Famous.objects.filter(dynasty_id=figure.dynasty_id)
+            .exclude(pk=figure.pk)
+            .select_related("surname")
+            .order_by("surname__second_name", "order", "name")[:8]
+        )
+    return render(
+        request,
+        "surname/figure_detail.html",
+        {
+            "figure": figure,
+            "same_dynasty": same_dynasty,
+            "jsonld": _person_jsonld(request, figure),
+        },
+    )
+
+
+def origins(request):
+    """Overview of clan roots and surname-to-surname relations."""
+    clans = Clan.objects.order_by("kind", "name")
+    relations = SurnameRelation.objects.select_related(
+        "source", "target_surname", "target_clan"
+    ).order_by("source__second_name", "relation_type")
+    return render(
+        request,
+        "surname/origins.html",
+        {
+            "clans": clans,
+            "relations": relations,
+            "relation_graph": _relation_graph(relations),
+        },
+    )
+
+
+def _directory_context(request):
+    form = SurnameFilterForm(request.GET or None)
+    queryset = SecondName.objects.all()
+
+    if form.is_bound and form.is_valid():
+        data = form.cleaned_data
+        query = data.get("q")
+        if query:
+            queryset = queryset.filter(
+                Q(second_name__icontains=query)
+                | Q(pinyin__icontains=query)
+                | Q(initial__icontains=query)
+                | Q(aliases__icontains=query)
+                | Q(summary__icontains=query)
+            )
+        if data.get("initial"):
+            queryset = queryset.filter(initial=data["initial"])
+        if data.get("province"):
+            queryset = queryset.filter(distributions__province=data["province"])
+        sort = data.get("sort") or "popular"
+    else:
+        sort = request.GET.get("sort") or "popular"
+
+    queryset = queryset.annotate(
+        figure_count=Count("figures", distinct=True),
+        province_count=Count("distributions", distinct=True),
+    )
+    if sort == "name":
+        queryset = queryset.order_by("second_name")
+    else:
+        queryset = queryset.order_by("-popularity", "second_name")
+
+    paginator = Paginator(queryset, 20)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    return {
+        "form": form,
+        "page_obj": page_obj,
+        "surnames": page_obj.object_list,
+        "total_count": paginator.count,
+        "has_filters": bool(request.GET.get("q") or request.GET.get("initial")
+                            or request.GET.get("province")),
+    }
+
+
+def surname_list(request):
+    context = _directory_context(request)
+    return render(request, "surname/list.html", context)
+
+
+def search(request):
+    context = _directory_context(request)
+    return render(request, "surname/search.html", context)

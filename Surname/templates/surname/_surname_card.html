@@ -1,0 +1,8 @@
+<li>
+    <a class="surname-card" href="{% url 'Surname:detail' surname.slug %}">
+        <span class="name">{{ surname.second_name }}</span>
+        <span class="meta">{{ surname.pinyin }}{% if surname.initial %} · {{ surname.initial }}{% endif %}</span>
+        {% if surname.summary %}<span class="card-summary">{{ surname.summary|truncatechars:72 }}</span>{% endif %}
+        <span class="card-stats">{{ surname.figure_count }} 位人物 · {{ surname.province_count }} 个省份</span>
+    </a>
+</li>

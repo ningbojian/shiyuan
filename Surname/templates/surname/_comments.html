@@ -1,0 +1,41 @@
+<section id="comments" class="card wide">
+  <h2>评论</h2>
+  {% if comments %}
+    <ul class="comment-list">
+      {% for comment in comments %}
+        <li>
+          <p>{{ comment.content|linebreaksbr }}</p>
+          <p class="muted">
+            {{ comment.user.profile.display_name|default:comment.user.username }}
+            · {{ comment.created_at|date:"Y-m-d H:i" }}
+          </p>
+          {% if comment.user_id == user.pk %}
+            <form action="{% url 'user:comment_delete' comment.pk %}" method="post">
+              {% csrf_token %}
+              <button type="submit">删除</button>
+            </form>
+          {% endif %}
+          {% if user.is_staff %}
+            <form action="{% url 'user:comment_hide' comment.pk %}" method="post">
+              {% csrf_token %}
+              <button type="submit">隐藏</button>
+            </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">暂无评论，欢迎留下第一条。</p>
+  {% endif %}
+
+  {% if user.is_authenticated %}
+    <form action="{% url 'user:comment_add' surname.second_name %}" method="post">
+      {% csrf_token %}
+      <label for="{{ comment_form.content.id_for_label }}">评论内容</label>
+      {{ comment_form.content }}
+      <button type="submit">发表评论</button>
+    </form>
+  {% else %}
+    <p><a href="{% url 'user:login' %}?next={{ request.path|urlencode }}">登录</a>后可以评论。</p>
+  {% endif %}
+</section>

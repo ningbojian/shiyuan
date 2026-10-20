@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}我的收藏 · 氏源{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="面包屑">
+    <ol>
+        <li><a href="{% url 'user:personal' %}">个人中心</a></li>
+        <li aria-current="page">我的收藏</li>
+    </ol>
+</nav>
+
+<header class="page-header">
+    <p class="eyebrow">仅自己可见</p>
+    <h1>我的收藏</h1>
+    <p class="lede">收藏的姓氏会按收藏时间倒序排列，最多每页 20 条。</p>
+</header>
+
+{% if favorites %}
+    <ul class="card-grid">
+        {% for favorite in favorites %}
+            <li>
+                <a class="surname-card" href="{% url 'Surname:detail' favorite.surname.slug %}">
+                    <span class="name">{{ favorite.surname.second_name }}</span>
+                    <span class="meta">{{ favorite.surname.pinyin }}{% if favorite.surname.initial %} · {{ favorite.surname.initial }}{% endif %}</span>
+                    {% if favorite.surname.summary %}<span class="card-summary">{{ favorite.surname.summary|truncatechars:72 }}</span>{% endif %}
+                    <span class="card-stats">收藏于 {{ favorite.created_at|date:"Y-m-d" }}</span>
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+    {% include "partials/_pagination.html" with page_obj=page_obj %}
+{% else %}
+    {% include "partials/_empty_state.html" with title="还没有收藏" description="在姓氏详情页点击“收藏”，之后可以从这里快速回到常读的姓氏。" %}
+    <p><a class="btn" href="{% url 'Surname:list' %}">浏览姓氏目录</a></p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,16 @@
+<footer class="site-footer">
+    <div class="container">
+        <div>
+            <p class="footer-brand">氏源 · 读姓氏，知来处</p>
+            <p class="footer-note">课程项目整理版。姓氏资料与分布强度均为演示内容，非权威统计。</p>
+        </div>
+        <nav class="footer-links" aria-label="页脚导航">
+            <a href="/">首页</a>
+            <a href="{% url 'Surname:list' %}">姓氏目录</a>
+            <a href="{% url 'Surname:figures' %}">历史人物</a>
+            <a href="{% url 'Surname:origins' %}">源流总览</a>
+            <a href="{% url 'Surname:information' %}">项目资料</a>
+            <a href="{% url 'Surname:developer' %}">关于团队</a>
+        </nav>
+    </div>
+</footer>

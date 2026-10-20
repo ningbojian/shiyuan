@@ -1,78 +1,12 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>姓氏搜索 | 氏源</title>
-    <style>
-        :root { --ink:#3f4438; --muted:#7c7765; --paper:#f7f4ec; --line:#ded7c6; --accent:#9b6f45; }
-        * { box-sizing: border-box; }
-        body { margin:0; font-family:"Microsoft YaHei","PingFang SC",sans-serif; color:var(--ink); background:var(--paper); }
-        header { display:flex; align-items:center; justify-content:space-between; padding:16px 5vw; border-bottom:1px solid var(--line); background:#fffdf7; }
-        .brand { display:flex; align-items:center; gap:10px; font-size:22px; font-weight:700; color:var(--ink); text-decoration:none; }
-        .brand img { width:36px; height:36px; object-fit:cover; border-radius:50%; border:1px solid var(--line); }
-        nav { display:flex; flex-wrap:wrap; gap:16px; font-size:14px; }
-        nav a { color:var(--muted); text-decoration:none; }
-        nav a:hover { color:var(--accent); }
-        main { max-width:1040px; margin:0 auto; padding:44px 22px 70px; }
-        .hero { text-align:center; margin:10px 0 34px; }
-        .hero h1 { font-size:38px; margin:0 0 10px; letter-spacing:2px; }
-        .hero p { color:var(--muted); margin:0; line-height:1.8; }
-        .search-box { display:flex; gap:10px; max-width:760px; margin:28px auto 0; }
-        .search-box input { flex:1; padding:13px 16px; border:1px solid var(--line); border-radius:9px; background:#fff; font-size:16px; color:var(--ink); outline:none; }
-        .search-box input:focus { border-color:var(--accent); }
-        .search-box button { padding:0 28px; border:0; border-radius:9px; background:var(--ink); color:#fff; font-size:15px; cursor:pointer; }
-        .search-box button:hover { background:var(--accent); }
-        .section-title { display:flex; align-items:center; gap:12px; margin:44px 0 16px; font-size:18px; }
-        .section-title:after { content:""; flex:1; height:1px; background:var(--line); }
-        .hot { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
-        .hot a { display:block; padding:20px 18px; border:1px solid var(--line); border-radius:10px; background:#fffdf8; color:var(--ink); text-decoration:none; text-align:center; }
-        .hot a:hover { border-color:var(--accent); transform:translateY(-2px); }
-        .hot .name { display:block; font-size:28px; font-weight:700; margin-bottom:6px; }
-        .hot .count { color:var(--muted); font-size:12px; }
-        .empty { color:var(--muted); padding:20px; border:1px dashed var(--line); border-radius:10px; text-align:center; }
-        footer { text-align:center; color:var(--muted); font-size:12px; padding:20px; border-top:1px solid var(--line); }
-        @media (max-width:760px) { .hot { grid-template-columns:repeat(2,1fr); } .search-box { flex-direction:column; } .search-box button { padding:12px; } }
-    </style>
-</head>
-<body>
-<header>
-    <a class="brand" href="{% url 'user:index' %}"><img src="{% static 'Surname/img/logo.jpg' %}" alt="氏源">氏源</a>
-    <nav>
-        <a href="{% url 'user:index' %}">首页</a>
-        <a href="{% url 'surname:search' %}">姓氏搜索</a>
-        <a href="{% url 'surname:science' %}">姓氏科普</a>
-        <a href="{% url 'surname:information' %}">姓氏资料</a>
-        <a href="{% url 'user:log' %}">登录</a>
-    </nav>
+{% extends "base.html" %}
+{% block title %}姓氏检索 · 氏源{% endblock %}
+{% block meta_description %}按姓氏、拼音、首字母、别名或摘要检索氏源姓氏资料。{% endblock %}
+{% block content %}
+<header class="page-header">
+    <p class="eyebrow">检索</p>
+    <h1>姓氏检索</h1>
+    <p class="lede">输入姓氏、拼音、首字母或别名，也可以按省份筛选。</p>
 </header>
 
-<main>
-    <div class="hero">
-        <h1>查一个姓氏，读一段迁徙</h1>
-        <p>输入姓氏查看起源、文化、人口分布、历代名人与迁徙路径。示例数据包含李、王、张、丁。</p>
-        <form class="search-box" action="{% url 'surname:index' %}" method="get">
-            <input name="surname" placeholder="请输入姓氏，例如：李" autocomplete="off" required>
-            <button type="submit">搜索</button>
-        </form>
-    </div>
-
-    <div class="section-title">热门搜索</div>
-    {% if hot %}
-    <div class="hot">
-        {% for item in hot %}
-        <a href="{% url 'surname:index' %}?surname={{ item.second_name|urlencode }}">
-            <span class="name">{{ item.second_name }}</span>
-            <span class="count">查询 {{ item.count }} 次</span>
-        </a>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="empty">暂无姓氏数据，请先运行 <code>python scripts/seed_demo.py</code>。</div>
-    {% endif %}
-</main>
-
-<footer>氏源 · 数据库课程项目展示</footer>
-</body>
-</html>
+{% include "surname/_directory.html" %}
+{% endblock %}

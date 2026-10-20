@@ -1,172 +1,234 @@
-import json
-from datetime import datetime
+from __future__ import annotations
 
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.middleware.csrf import get_token
-from django.shortcuts import render
+import logging
+
+from django.contrib import messages
+from django.contrib.auth import login, logout, update_session_auth_hash
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import PasswordChangeForm
+from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.views import View
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
-from user.forms import UserCreatForm
-from user.models import Comment, User
+from Surname.models import SecondName
+from user.forms import CommentForm, LoginForm, ProfileForm, RegisterForm
+from user.models import Comment, Favorite, Profile, ReadingHistory
+from user.throttle import cache_key, clear, is_limited, rate_limit, record_failure
+
+logger = logging.getLogger("shiyuan.audit")
+
+LOGIN_FAILURE_LIMIT = 5
+LOGIN_FAILURE_WINDOW_SECONDS = 300
+COMMENT_LIMIT = 10
+COMMENT_WINDOW_SECONDS = 600
 
 
-def getToken(request):
-    """Return a CSRF token for the small Vue front-end."""
-    return JsonResponse({"token": get_token(request)})
+def _login_failure_key(ip: str, username: str) -> str:
+    return cache_key("login-fail", f"{ip}:{username.strip().lower()}")
 
 
-class UsersAction(View):
-    def get(self, request):
-        return render(request, "user/index.html")
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect("user:personal")
 
-    def log(request):
-        if "user_info" in request.session:
-            return HttpResponseRedirect(reverse("user:personal"))
-        return render(request, "user/login.html")
+    next_url = request.POST.get("next") or request.GET.get("next") or ""
 
-    def login(request):
-        account = request.POST.get("account")
-        code = request.POST.get("code")
-        if not account or not code:
-            return render(request, "user/login.html", {"err": "账号或密码错误"})
+    if request.method == "POST":
+        username = request.POST.get("username", "")
+        ip = request.META.get("REMOTE_ADDR", "")
+        key = _login_failure_key(ip, username)
+        form = LoginForm(request, data=request.POST)
 
-        user = User.objects.filter(account=account).first()
-        if user is None:
-            return render(request, "user/login.html", {"err": "账号不存在"})
-
-        # New accounts use Django's password hash; ``code`` is a legacy
-        # plaintext field from the original course project.
-        if user.check_password(code) or (user.code and user.code == code):
-            if user.code and not user.check_password(code):
-                user.set_password(code)
-                user.code = ""
-                user.save(update_fields=["password", "code"])
-            request.session["user_info"] = user.account
-            request.session["user_name"] = user.name
-            return HttpResponseRedirect(reverse("user:personal"))
-        return render(request, "user/login.html", {"err": "账号或密码错误"})
-
-    def create(request):
-        form = UserCreatForm(data=request.POST)
-        if not form.is_valid():
-            return JsonResponse({"error": form.errors.get_json_data()}, status=400)
-
-        if User.objects.filter(account=form.cleaned_data["account"]).exists():
-            return JsonResponse({"error": {"account": "账号已存在"}}, status=400)
-
-        user = User(
-            name=form.cleaned_data["name"],
-            account=form.cleaned_data["account"],
-            surname=request.POST.get("surname") or None,
-            code="",
-        )
-        user.set_password(form.cleaned_data["code"])
-        user.save()
-        request.session["is_login"] = "true"
-        return HttpResponseRedirect(reverse("user:personal"))
-
-    def changeVip(self, request):
-        account = request.POST.get("account")
-        if not account:
-            return JsonResponse({"err": "请输入账号"}, status=400)
-        user = User.objects.filter(account=account).first()
-        if user is None:
-            return JsonResponse({"err": "请输入正确的账号"}, status=400)
-
-        try:
-            months = int(request.POST.get("month", "1"))
-        except (TypeError, ValueError):
-            months = 1
-        now = datetime.now()
-        total_month = now.month - 1 + max(months, 1)
-        year = now.year + total_month // 12
-        month = total_month % 12 + 1
-        user.vip = True
-        user.vip_begin = now
-        user.vip_end = now.replace(year=year, month=month)
-        user.save(update_fields=["vip", "vip_begin", "vip_end"])
-        return JsonResponse({"success": "恭喜成为VIP"})
-
-    def alter(self, request):
-        account = request.POST.get("account")
-        if not account:
-            return JsonResponse({"err": "请输入账号"}, status=400)
-        user = User.objects.filter(account=account).first()
-        if user is None:
-            return JsonResponse({"err": "请输入正确的账号"}, status=400)
-
-        code = request.POST.get("code")
-        name = request.POST.get("name")
-        surname = request.POST.get("surname")
-        if code:
-            if user.check_password(code):
-                return JsonResponse({"err": "请输入与上次不同的密码"})
-            user.set_password(code)
-            user.code = ""
-        if name:
-            user.name = name
-        if surname:
-            user.surname = surname
-        user.save()
-        return JsonResponse({"success": "更改成功"})
-
-    def comment(request):
-        # The original course front-end uses query parameters. This is kept
-        # for compatibility; a production version should use POST + CSRF.
-        params = request.POST if request.method == "POST" else request.GET
-        action = params.get("action")
-        if not action:
-            return JsonResponse({"err": {"action": "请输入操作"}}, status=400)
-        account = params.get("account")
-        content = params.get("content")
-        errors = {}
-        if not account:
-            errors["account"] = "请输入账号"
-        if not content and action != "find":
-            errors["content"] = "请输入内容"
-        if errors:
-            return JsonResponse(errors, status=400)
-
-        user = User.objects.filter(account=account).first()
-        if user is None:
-            return JsonResponse({"account": "请输入正确账号"}, status=400)
-
-        if action == "find":
-            return JsonResponse({"msg": list(user.C_account.values_list("content", flat=True))})
-
-        comment = Comment.objects.filter(account=user, content=content).first()
-        if action in {"delete", "alter"} and comment is None:
-            return JsonResponse({"content": "请输入正确内容"}, status=400)
-
-        if action == "delete":
-            comment.delete()
-        elif action == "alter":
-            new_content = params.get("newComment")
-            if not new_content:
-                return JsonResponse({"err": {"newComment": "请输入新的评论"}}, status=400)
-            comment.content = new_content
-            comment.save(update_fields=["content"])
-        elif action == "add":
-            Comment.objects.create(account=user, content=content)
+        if is_limited(key, LOGIN_FAILURE_LIMIT):
+            form.add_error(None, "尝试次数过多，请稍后再试")
+            logger.warning("login throttled username=%r ip=%s", username, ip)
+        elif form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            clear(key)
+            logger.info("login success user=%s ip=%s", user.pk, ip)
+            if next_url and url_has_allowed_host_and_scheme(
+                next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
+                return redirect(next_url)
+            return redirect("user:personal")
         else:
-            return JsonResponse({"success": "操作成功"})
-        return JsonResponse({"success": "操作成功"})
+            record_failure(key, LOGIN_FAILURE_WINDOW_SECONDS)
+            logger.warning("login failure username=%r ip=%s", username, ip)
+    else:
+        form = LoginForm(request)
 
-    def register(request):
-        return render(request, "user/register.html")
+    return render(request, "user/login.html", {"form": form, "next": next_url})
 
-    def personal(request):
-        account = request.session.get("user_info")
-        if not account:
-            return HttpResponseRedirect(reverse("user:log"))
-        user = User.objects.filter(account=account).first()
-        if user is None:
-            request.session.flush()
-            return HttpResponseRedirect(reverse("user:log"))
-        return render(request, "user/personal.html", {"user": user})
 
-    def logout(request):
-        request.session.pop("user_info", None)
-        request.session.pop("user_name", None)
-        return HttpResponseRedirect(reverse("user:log"))
+def register_view(request):
+    if request.user.is_authenticated:
+        return redirect("user:personal")
+
+    if request.method == "POST":
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            profile, _ = Profile.objects.get_or_create(user=user)
+            profile.display_name = form.cleaned_data["display_name"]
+            profile.save(update_fields=["display_name"])
+            login(request, user)
+            return redirect("user:personal")
+    else:
+        form = RegisterForm()
+
+    return render(request, "user/register.html", {"form": form})
+
+
+@require_POST
+def logout_view(request):
+    logout(request)
+    return redirect("/")
+
+
+@login_required
+def personal(request):
+    profile, _ = Profile.objects.get_or_create(user=request.user)
+    return render(
+        request,
+        "user/personal.html",
+        {
+            "profile": profile,
+            "favorite_count": Favorite.objects.filter(user=request.user).count(),
+            "history_count": ReadingHistory.objects.filter(user=request.user).count(),
+            "comment_count": Comment.objects.filter(user=request.user).count(),
+            "recent_comments": Comment.objects.filter(user=request.user)
+            .select_related("surname")
+            .order_by("-created_at")[:5],
+        },
+    )
+
+
+@login_required
+def profile_edit(request):
+    profile, _ = Profile.objects.get_or_create(user=request.user)
+    if request.method == "POST":
+        form = ProfileForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "资料已更新。")
+            return redirect("user:personal")
+    else:
+        form = ProfileForm(instance=profile)
+    return render(request, "user/profile_edit.html", {"form": form})
+
+
+@login_required
+def password_change(request):
+    if request.method == "POST":
+        form = PasswordChangeForm(request.user, data=request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, "密码已更新。")
+            return redirect("user:personal")
+    else:
+        form = PasswordChangeForm(request.user)
+    return render(request, "user/password_change.html", {"form": form})
+
+
+def _surname_detail_url(surname: SecondName) -> str:
+    return reverse("Surname:detail", args=[surname.slug])
+
+
+@login_required
+def favorites(request):
+    queryset = Favorite.objects.filter(user=request.user).select_related("surname")
+    page_obj = Paginator(queryset, 20).get_page(request.GET.get("page"))
+    return render(
+        request,
+        "user/favorites.html",
+        {"page_obj": page_obj, "favorites": page_obj.object_list},
+    )
+
+
+@login_required
+def history(request):
+    queryset = ReadingHistory.objects.filter(user=request.user).select_related(
+        "surname"
+    )
+    page_obj = Paginator(queryset, 20).get_page(request.GET.get("page"))
+    return render(
+        request,
+        "user/history.html",
+        {"page_obj": page_obj, "entries": page_obj.object_list},
+    )
+
+
+@login_required
+@require_POST
+def delete_history(request, pk: int):
+    entry = get_object_or_404(ReadingHistory, pk=pk, user=request.user)
+    entry.delete()
+    messages.success(request, "已从浏览历史中移除。")
+    return redirect("user:history")
+
+
+@login_required
+@require_POST
+def toggle_favorite(request, slug: str):
+    surname = get_object_or_404(SecondName, slug=slug)
+    favorite = Favorite.objects.filter(user=request.user, surname=surname)
+    if favorite.exists():
+        favorite.delete()
+        messages.success(request, "已取消收藏。")
+    else:
+        Favorite.objects.create(user=request.user, surname=surname)
+        messages.success(request, "已加入收藏。")
+    return redirect("Surname:detail", slug=surname.slug)
+
+
+@login_required
+@require_POST
+def add_comment(request, second_name: str):
+    surname = get_object_or_404(SecondName, second_name=second_name)
+    form = CommentForm(request.POST)
+    if form.is_valid():
+        key = cache_key("comment", str(request.user.pk))
+        if not rate_limit(key, COMMENT_LIMIT, COMMENT_WINDOW_SECONDS):
+            messages.error(request, "评论过于频繁，请稍后再试。")
+            logger.warning("comment throttled user=%s", request.user.pk)
+        else:
+            Comment.objects.create(
+                user=request.user,
+                surname=surname,
+                content=form.cleaned_data["content"],
+            )
+            messages.success(request, "评论已发表。")
+    else:
+        messages.error(request, "评论内容不能为空，且不得超过 1000 字。")
+    return redirect(_surname_detail_url(surname))
+
+
+@login_required
+@require_POST
+def delete_comment(request, comment_id: int):
+    comment = get_object_or_404(Comment, pk=comment_id, user=request.user)
+    surname = comment.surname
+    comment.delete()
+    logger.info("comment delete user=%s comment=%s", request.user.pk, comment_id)
+    messages.success(request, "评论已删除。")
+    return redirect(_surname_detail_url(surname))
+
+
+@login_required
+@require_POST
+def hide_comment(request, comment_id: int):
+    if not request.user.is_staff:
+        raise PermissionDenied
+    comment = get_object_or_404(Comment, pk=comment_id)
+    comment.status = Comment.STATUS_HIDDEN
+    comment.save(update_fields=["status", "updated_at"])
+    logger.info("comment hide staff=%s comment=%s", request.user.pk, comment_id)
+    messages.success(request, "评论已隐藏。")
+    return redirect(_surname_detail_url(comment.surname))

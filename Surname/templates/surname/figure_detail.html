@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load seo_tags %}
+{% block title %}{{ figure.name }} · 历史人物 · 氏源{% endblock %}
+{% block meta_description %}{{ figure.name }}，{{ figure.dynasty.name|default:"时期不详" }}，{{ figure.surname.second_name }}姓。{{ figure.info|truncatechars:120 }}{% endblock %}
+{% block og_title %}{{ figure.name }} · 历史人物 · 氏源{% endblock %}
+{% block og_description %}{{ figure.name }}，{{ figure.dynasty.name|default:"时期不详" }}，{{ figure.surname.second_name }}姓。{{ figure.info|truncatechars:150 }}{% endblock %}
+{% block jsonld %}{% if jsonld %}<script type="application/ld+json">{{ jsonld|jsonld }}</script>{% endif %}{% endblock %}
+{% block content %}
+<nav class="breadcrumbs" aria-label="面包屑">
+    <ol>
+        <li><a href="/">首页</a></li>
+        <li><a href="{% url 'Surname:figures' %}">历史人物</a></li>
+        <li aria-current="page">{{ figure.name }}</li>
+    </ol>
+</nav>
+
+<header class="detail-hero">
+    <div>
+        <p class="eyebrow">{{ figure.dynasty.name|default:"时期不详" }} · {{ figure.surname.second_name }}姓</p>
+        <h1>{{ figure.name }}</h1>
+        {% if figure.birth_year or figure.death_year %}
+            <p class="lede">生卒：{{ figure.birth_year|default:"?" }}—{{ figure.death_year|default:"?" }}</p>
+        {% endif %}
+    </div>
+    <div class="detail-actions">
+        <a class="btn btn-secondary" href="{% url 'Surname:detail' figure.surname.slug %}">读 {{ figure.surname.second_name }}姓</a>
+        <button type="button" class="secondary" data-print>打印</button>
+        <button type="button" class="secondary" data-copy-link>复制链接</button>
+    </div>
+</header>
+
+<div class="section">
+    <h2>人物简介</h2>
+    <div>{{ figure.info|linebreaks }}</div>
+</div>
+
+<div class="section">
+    <h2>条目信息</h2>
+    <table>
+        <tbody>
+            <tr><th scope="row">姓名</th><td>{{ figure.name }}</td></tr>
+            <tr><th scope="row">朝代</th><td>{{ figure.dynasty.name|default:"时期不详" }}</td></tr>
+            <tr><th scope="row">所属姓氏</th><td><a href="{% url 'Surname:detail' figure.surname.slug %}">{{ figure.surname.second_name }}姓</a></td></tr>
+            <tr><th scope="row">生卒</th><td>{{ figure.birth_year|default:"?" }}—{{ figure.death_year|default:"?" }}</td></tr>
+        </tbody>
+    </table>
+    {% if figure.is_demo %}
+        <p class="muted">演示数据 · 内容为课程展示整理，非权威传记。</p>
+    {% endif %}
+    {% if figure.source_note %}<p class="muted">{{ figure.source_note }}</p>{% endif %}
+</div>
+
+{% if same_dynasty %}
+    <section class="section" aria-labelledby="same-dynasty-title">
+        <h2 id="same-dynasty-title">同一朝代的人物</h2>
+        <ul class="relation-list">
+            {% for other in same_dynasty %}
+                <li>
+                    <a href="{% url 'Surname:figure_detail' other.slug %}">{{ other.name }}</a>
+                    <span class="muted">{{ other.surname.second_name }}姓</span>
+                </li>
+            {% endfor %}
+        </ul>
+    </section>
+{% endif %}
+{% endblock %}

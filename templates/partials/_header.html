@@ -1,0 +1,39 @@
+{% load static %}
+<header class="site-header">
+    <div class="container">
+        <a class="brand" href="/">
+            <img src="{% static 'Surname/img/logo.jpg' %}" alt="" width="37" height="37">
+            <span>氏源<br><small>姓氏阅读</small></span>
+        </a>
+
+        <nav id="site-nav" class="site-nav" aria-label="主导航">
+            <a href="/"{% if request.path == "/" %} aria-current="page"{% endif %}>首页</a>
+            <a href="{% url 'Surname:list' %}"{% if request.resolver_match.url_name == "list" %} aria-current="page"{% endif %}>姓氏目录</a>
+            <a href="{% url 'Surname:figures' %}"{% if request.resolver_match.url_name == "figures" or request.resolver_match.url_name == "figure_detail" %} aria-current="page"{% endif %}>人物</a>
+            <a href="{% url 'Surname:origins' %}"{% if request.resolver_match.url_name == "origins" %} aria-current="page"{% endif %}>源流</a>
+            <a href="{% url 'Surname:science' %}"{% if request.resolver_match.url_name == "science" %} aria-current="page"{% endif %}>姓氏科普</a>
+            <a href="{% url 'Surname:information' %}"{% if request.resolver_match.url_name == "information" %} aria-current="page"{% endif %}>项目资料</a>
+            <div class="account-nav">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'user:personal' %}">{{ user.profile.display_name|default:user.username }}</a>
+                    <form action="{% url 'user:logout' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="nav-link">退出</button>
+                    </form>
+                {% else %}
+                    <a href="{% url 'user:login' %}">登录</a>
+                    <a href="{% url 'user:register' %}">注册</a>
+                {% endif %}
+            </div>
+        </nav>
+
+        <button type="button" class="theme-toggle" data-theme-toggle aria-pressed="false" aria-label="切换到夜间模式">
+            <span aria-hidden="true" data-theme-icon>☾</span>
+            <span data-theme-label>夜间</span>
+        </button>
+
+        <button type="button" class="nav-toggle" data-nav-toggle aria-controls="site-nav" aria-expanded="false">
+            菜单
+        </button>
+    </div>
+</header>

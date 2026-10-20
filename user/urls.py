@@ -1,20 +1,52 @@
 from django.urls import path
 from django.views.generic import RedirectView
 
-from user.views import UsersAction, getToken
+from user import views
 
-app_name = 'user'
+app_name = "user"
+
 urlpatterns = [
-    path('create/', UsersAction.create, name='create'),
-    path('vip/', UsersAction.changeVip, name='vip'),
-    path('alter/', UsersAction.alter, name='alter'),
-    path('getToken/', getToken, name='getToken'),
-    path('comment/', UsersAction.comment, name='comment'),
-    path('' , RedirectView.as_view(url='index')),
-    path('index/' , UsersAction.as_view() , name = 'index'),
-    path('log/' , UsersAction.log , name='log'),
-    path('login/' , UsersAction.login , name='login'),
-    path('register/' , UsersAction.register , name = 'register'),
-    path('personal/' , UsersAction.personal , name = 'personal'),
-    path('logout/' , UsersAction.logout , name = 'logout')
+    path("login/", views.login_view, name="login"),
+    path("register/", views.register_view, name="register"),
+    path("logout/", views.logout_view, name="logout"),
+    path("personal/", views.personal, name="personal"),
+    path("profile/", views.profile_edit, name="profile_edit"),
+    path("password/", views.password_change, name="password_change"),
+    path(
+        "favorite/<slug:slug>/",
+        views.toggle_favorite,
+        name="favorite_toggle",
+    ),
+    path("favorites/", views.favorites, name="favorites"),
+    path("history/", views.history, name="history"),
+    path(
+        "history/<int:pk>/delete/",
+        views.delete_history,
+        name="history_delete",
+    ),
+    path(
+        "comment/<str:second_name>/add/",
+        views.add_comment,
+        name="comment_add",
+    ),
+    path(
+        "comment/<int:comment_id>/delete/",
+        views.delete_comment,
+        name="comment_delete",
+    ),
+    path(
+        "comment/<int:comment_id>/hide/",
+        views.hide_comment,
+        name="comment_hide",
+    ),
+    # Legacy course-project URLs kept as redirects.
+    path(
+        "log/",
+        RedirectView.as_view(pattern_name="user:login", permanent=False),
+    ),
+    path(
+        "create/",
+        RedirectView.as_view(pattern_name="user:register", permanent=False),
+    ),
+    path("", RedirectView.as_view(url="/", permanent=False)),
 ]

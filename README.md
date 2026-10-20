@@ -1,160 +1,217 @@
-# 氏源 · 姓氏文化查询与可视化
+# 氏源 · 姓氏阅读与可视化
 
-> Django + SQLite/MySQL + ECharts 的姓氏文化网站：搜索一个姓氏，查看它的起源、文化、人口分布、历代名人和迁徙路径。  
-> 数据库课程团队项目的**可运行整理版**。
+[![CI](https://github.com/ningbojian/shiyuan/actions/workflows/ci.yml/badge.svg)](https://github.com/ningbojian/shiyuan/actions/workflows/ci.yml)
 
-![氏源首页](docs/images/home.png)
+> 查一个姓氏，读它的源流、人物、迁徙与分布。  
+> 课程项目的重构版：Django 5.2 + SQLite + 本地 ECharts，33 个姓氏的阅读型目录站。
+
+![氏源首页](docs/screenshots/home.png)
 
 ## 30 秒了解
 
-- **做什么**：把姓氏文本资料组织成数据库，并用地图、词云、关系图和迁徙时间轴可视化。
-- **技术栈**：Django 5.2、SQLite（可换 MySQL）、ECharts、pyecharts、Django 模板 + 原生 JS。
-- **我的工作**：姓氏数据模型、用户注册登录、评论模块、页面/路由整理、演示数据、README 与安全清理。
-- **不是**：不是完整论坛，也不是生产系统；没有后台审核、弹幕流和部署配置。课程报告里的评论/弹幕设想，当前实现为评论 CRUD。
-
-## 效果截图
-
-| 姓氏搜索 | 登录 |
-|---|---|
-| ![搜索](docs/images/search.png) | ![登录](docs/images/login.png) |
-
-姓氏详情（人口分布地图、起源文本、按朝代的名人列表）：
-
-![姓氏详情](docs/images/surname-detail-top.png)
-
-词云与关系图：
-
-![词云与关系图](docs/images/surname-detail-charts.png)
-
-## 项目背景
-
-氏源是上海财经大学《数据库原理》课程（2021 Fall）的六人小组项目。原始项目以 MySQL 为数据库，包含姓氏资料、地图、词云、名人、关系图和迁徙路径等功能。课程结束后，本仓库做了这些整理：
-
-- 从原始工程中找回完整的 Django 后端、模板、静态资源和词云 pickle；
-- 用 SQLite 提供无需安装 MySQL 的演示路径；
-- 增加李、王、张、丁四个姓氏的示例数据和可重复执行的 seed 脚本；
-- 移除硬编码 `SECRET_KEY`、真实数据库密码、明文密码比较和外部图片/CDN 依赖；
-- 修复若干运行时 bug，补充 README、API 摘要和截图。
+- **做什么**：把姓氏资料组织成可检索、可浏览的目录，并用地图、词云、关系图和迁徙时间轴辅助阅读。
+- **技术栈**：Django 5.2、SQLite、Django 模板 + 原生 JS/CSS、ECharts 5（仓库内静态文件）、WhiteNoise、pypinyin。
+- **工程重点**：数据可复现加载、写入操作安全、查询预算、自动化测试、离线静态资源、无障碍与 SEO。
+- **不是**：不是论坛，也不是权威姓氏数据库；分布强度是 0–100 的示意值，不是人口统计。
 
 ## 功能
 
-- 用户注册、登录、退出、个人中心；
-- 姓氏搜索、热门搜索；
-- 姓氏详情：基本信息、起源、文化、人口分布；
-- 人口分布地图（ECharts map）；
-- 历代名人按朝代展示；
-- 姓氏词云（ECharts wordCloud）；
-- 姓氏关系图（ECharts graph）；
-- 迁徙路径（pyecharts Timeline/Map）；
-- 评论增删改查（课程原型，接口使用 GET）。
+**浏览与检索**
 
-## 技术栈与架构
+- 首页搜索、拼音首字母索引、精选姓氏、每日一姓；
+- 姓氏目录支持关键词、首字母、省份与排序筛选，分页保留查询参数；
+- 搜索匹配姓氏、拼音、首字母、别名与摘要。
 
-- **后端**：Django 5.2，Django ORM，SQLite（默认）/ MySQL（可选）；
-- **可视化**：ECharts + pyecharts；
-- **前端**：Django 模板 + 原生 JS/CSS（不再依赖 QQ/百度外链图片）；
-- **数据**：四个示例姓氏的原始文本 + seed 脚本生成的省份、朝代、分布、名人、评论数据。
+**姓氏详情**
+
+- 目录（TOC）、基本信息、源流、迁徙、分布、人物、文化、来源说明与评论；
+- 分布地图、迁徙时间轴、姓氏关系图、关键词词云，全部使用本地 ECharts 且懒加载；
+- 每张图都提供 `<details>` 数据表作为文本替代与打印内容。
+
+**人物与源流**
+
+- `/surname/figures/` 按朝代、姓氏筛选人物，详情页展示生卒、简介与同朝代人物；
+- `/surname/origins/` 汇总宗族节点与“源出/分支/改姓/同源”关系，并用关系图呈现。
+
+**账号与数据安全**
+
+- 注册、登录、退出、资料编辑、密码修改；使用 Django 内置 `auth.User` + `Profile`；
+- 收藏、浏览历史（最多保留 50 条）、本人评论管理与个人中心；
+- 评论/收藏/历史/删除均为 POST + CSRF，服务端校验对象归属；
+- 登录失败 5 次/5 分钟、评论 10 条/10 分钟限流，并写入审计日志。
+
+**可复用数据与发布**
+
+- 只读 JSON API v1：姓氏目录、详情、搜索、人物与元数据，见 [`docs/API.md`](docs/API.md)；
+- `sitemap.xml`、`robots.txt`、canonical、Open Graph/Twitter 卡片；
+- 姓氏详情输出 `WebPage` JSON-LD，人物详情输出 `Person` JSON-LD。
+
+## 效果截图
+
+| 首页 | 姓氏详情 |
+|---|---|
+| ![首页](docs/screenshots/home.png) | ![姓氏详情](docs/screenshots/detail.png) |
+
+| 人物索引 | 源流总览 |
+|---|---|
+| ![人物索引](docs/screenshots/figures.png) | ![源流总览](docs/screenshots/origins.png) |
+
+移动端与夜间模式截图、Lighthouse 与响应式验收记录见 [`docs/QA.md`](docs/QA.md)。
+
+## 技术架构
 
 ```mermaid
 flowchart LR
-    Browser[浏览器] --> Django[Django views]
+    Browser[浏览器] --> Django[Django views / templates]
     Django --> ORM[Django ORM]
-    ORM --> DB[(SQLite / MySQL)]
-    Django --> Pyecharts[pyecharts 片段]
-    Django --> Templates[模板 + ECharts]
-    Templates --> Browser
+    ORM --> DB[(SQLite)]
+    Django --> JSON[json_script 图表数据]
+    JSON --> ECharts[本地 ECharts]
+    Django --> WhiteNoise[WhiteNoise 静态文件]
+    WhiteNoise --> Browser
 ```
 
-## 数据模型
+- 服务端渲染，无 SPA、无 Node 构建链；
+- 图表数据通过 `json_script` 输出，前端不拼接 HTML；
+- 原 pyecharts、pickle、CDN 和 `|safe` 渲染路径已移除；
+- 数据唯一来源是 `data/catalog.json`，由管理命令校验并加载。
 
-| 表 | 说明 |
+## 数据
+
+`data/catalog.json` 当前包含：
+
+| 内容 | 数量 |
 |---|---|
-| `surname` | 姓氏主数据：基本信息、起源、文化、迁徙、人口分布文本 |
-| `province` | 省份维度 |
-| `dynasty` | 朝代及起止时间 |
-| `distribution` | 姓氏 × 省份人口比例 |
-| `famous` | 姓氏 × 朝代名人 |
-| `user` | 自定义用户（密码使用 Django hash） |
-| `comment` | 用户评论 |
+| 姓氏 | 33 |
+| 历史人物 | 132 |
+| 迁徙事件 | 66 |
+| 源流关系 | 36 |
+| 宗族节点 | 10 |
+| 省份 / 朝代 | 34 / 18 |
 
-更完整的课程报告摘要见 [`docs/PROJECT_REPORT.md`](docs/PROJECT_REPORT.md)，路由/接口见 [`docs/API.md`](docs/API.md)。
+李、王、张、丁四姓的原始课程文本完整保留在 `data/surnames/`，其余姓氏与全部人物/事件/分布为演示整理内容。**分布强度是可视化示意值，不是人口占比**；所有演示记录带 `is_demo=True` 与来源说明。详见 [`docs/DATA.md`](docs/DATA.md)。
 
 ## 快速开始
 
-要求：Python 3.10+（推荐 3.12/3.13）。
+要求：Python 3.11+（推荐 3.13）。
 
 ```bash
 python -m venv .venv
 source .venv/Scripts/activate        # Git Bash on Windows
 pip install -r requirements.txt
 
-# 本地开发需要 DEBUG=1，静态文件才会由 runserver 提供
-export DJANGO_SECRET_KEY=dev-only-change-me
 export DJANGO_DEBUG=1
+export DJANGO_SECRET_KEY=dev-only-change-me
 export DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
 
 python manage.py migrate
-python scripts/seed_demo.py
+python manage.py load_catalog
+python manage.py seed_demo
 python manage.py runserver 127.0.0.1:8000
 ```
 
 打开 <http://127.0.0.1:8000/>。
 
-**演示账号**：`demo` / `demo123456`（由 `scripts/seed_demo.py` 创建）。
+- 演示账号：`demo` / `demo123456`，仅由 `seed_demo` 在 `DEBUG=1` 时创建；生产环境需显式 `--force` 且会打印警告。
+- PowerShell 请使用 `$env:DJANGO_DEBUG="1"` 等写法。
+- 项目不自动加载 `.env`；[`.env.example`](.env.example) 只是变量清单。
+- 开发环境缺少 `DJANGO_SECRET_KEY` 时会生成并复用 `.dev-secret-key`（已 gitignore）；生产环境缺少则直接报错。
 
-> 在 PowerShell 中请用 `$env:DJANGO_DEBUG="1"` 等写法；`.env.example` 是配置示例，项目本身不自动加载 `.env`。
+## 测试与质量
 
-## 项目结构
+```bash
+DJANGO_DEBUG=1 python manage.py test -v 2
+ruff check .
+DJANGO_DEBUG=1 python manage.py check
+```
+
+- 180+ 个 Django 测试，覆盖模型约束、目录加载/校验、搜索分页、认证与 CSRF/IDOR、评论 XSS、收藏/历史、API、SEO 与部署配置；
+- 查询预算：首页 6 条、目录 ≤ 5 条、详情 ≤ 16 条、人物列表 ≤ 5 条；
+- Lighthouse 无障碍 1.00（5 个页面），375/768/1440 px 无横向溢出；
+- GitHub Actions 执行 `check`、`test`、`ruff` 与生产模式 `collectstatic`。
+
+复现方式与已知限制见 [`docs/QA.md`](docs/QA.md)。
+
+## 目录结构
 
 ```text
 shiyuan/
-├─ manage.py
-├─ project/                 # Django settings / urls
-├─ Surname/                 # 姓氏、省份、朝代、分布、名人
-│  ├─ models.py
-│  ├─ views.py              # 详情页、图表数据、迁徙解析
-│  ├─ templates/surname/    # 首页/搜索/详情/资料/科普/公告/团队
-│  └─ static/Surname/       # ECharts、词云扩展、词云 pickle
-├─ user/                    # 注册登录、个人中心、评论
-│  ├─ models.py
-│  ├─ views.py
-│  └─ templates/user/
-├─ scripts/
-│  ├─ import_surnames.py    # 导入 data/surnames 下的文本
-│  └─ seed_demo.py          # 生成可运行演示数据
-├─ data/surnames/           # 李、王、张、丁四个示例姓氏
-├─ docs/
-│  ├─ PROJECT_REPORT.md
-│  ├─ API.md
-│  └─ images/
-├─ requirements.txt
-└─ .env.example
+├─ project/                  # settings / urls / test runner
+├─ Surname/
+│  ├─ models.py              # 姓氏、省份、朝代、分布、人物、宗族、关系、迁徙
+│  ├─ views.py               # 首页、目录、搜索、详情、人物、源流
+│  ├─ api.py / api_urls.py   # /api/v1 只读 JSON API
+│  ├─ sitemaps.py            # sitemap.xml
+│  ├─ services/catalog.py    # catalog 校验、slug、加载
+│  ├─ management/commands/   # load_catalog / validate_catalog / seed_demo
+│  ├─ templatetags/          # JSON-LD 安全序列化
+│  └─ tests/
+├─ user/                     # 账号、Profile、评论、收藏、历史、限流
+├─ templates/                # 全站壳、robots.txt、404/500
+├─ static/                   # 纸墨样式、站点 JS、图表 JS、本地 ECharts
+├─ data/
+│  ├─ catalog.json           # 33 个姓氏的唯一可复现数据源
+│  └─ surnames/              # 李、王、张、丁原始文本样本
+├─ docs/                     # API / DATA / QA / 项目报告 / 截图
+├─ .github/workflows/ci.yml
+└─ requirements.txt
 ```
 
-## 数据与脚本
-
-完整课程数据包含 300+ 姓氏，体积较大且含原始课程素材，**没有提交**。仓库只保留四个示例：
+## 数据命令
 
 ```bash
-# 重新导入四个示例姓氏的文本
-python scripts/import_surnames.py
-
-# 生成省份、朝代、分布、名人、演示账号和评论
-python scripts/seed_demo.py
+python manage.py validate_catalog           # 校验 catalog 与数据契约
+python manage.py load_catalog --dry-run     # 只打印统计，不写库
+python manage.py load_catalog               # 加载/同步目录
+python manage.py seed_demo                  # 省份、朝代、演示账号、评论、收藏、历史
 ```
 
-如果把同结构的姓氏目录放进 `data/surnames/`，两个脚本就会处理新增数据。
+修改 `data/surnames/` 或生成脚本后，运行 `python scripts/generate_catalog.py` 重建 `data/catalog.json`，再执行上面的加载命令。
 
-## 安全与限制
+## API、SEO 与部署
 
-这是课程作业整理版，不是生产系统：
+- API 文档：[`docs/API.md`](docs/API.md)
+- 数据说明：[`docs/DATA.md`](docs/DATA.md)
+- 无障碍与响应式：[`docs/QA.md`](docs/QA.md)
+- 项目状态与后续计划：[`PROJECT_STATE.md`](PROJECT_STATE.md)
+- 课程背景与技术报告：[`docs/PROJECT_REPORT.md`](docs/PROJECT_REPORT.md)
 
-- 评论接口为了兼容原前端使用 GET 参数；生产环境应改为 POST + CSRF，并增加审核/权限；
-- 没有完整的论坛、弹幕、后台审核和部署配置；
-- 示例账号和评论只存在本地 SQLite，请不要使用真实密码；
-- 原项目的 `SECRET_KEY`、数据库口令、`DEBUG=True`、`ALLOWED_HOSTS=['*']`、CORS `*` 已清理；
-- 演示数据中的分布比例是为可视化生成的示例值，不代表真实统计。
+生产部署最小步骤（Linux + gunicorn 示例）：
 
-## 使用说明
+```bash
+pip install -r requirements-prod.txt
 
-本项目为课程作品展示，**未添加开源 LICENSE**；未经许可请勿商用。请不要把仓库里的示例账号/数据用于真实业务。
+export DJANGO_DEBUG=0
+export DJANGO_SECRET_KEY="<50+ 字符随机值>"
+export DJANGO_ALLOWED_HOSTS="example.com"
+export DJANGO_CSRF_TRUSTED_ORIGINS="https://example.com"
+export DJANGO_SECURE_SSL=1
+export DJANGO_TRUST_X_FORWARDED_PROTO=1  # 仅当反向代理会覆盖该头
+
+python manage.py migrate
+python manage.py load_catalog
+python manage.py collectstatic --noinput
+gunicorn project.wsgi:application --bind 127.0.0.1:8000
+```
+
+反向代理需设置 `proxy_set_header X-Forwarded-Proto $scheme;`。应用默认不信任该头；只有在反向代理会覆盖/剥离客户端传入值时才设置 `DJANGO_TRUST_X_FORWARDED_PROTO=1`，否则会引入伪造 HTTPS 的风险。
+
+- WhiteNoise 在生产模式使用带哈希的压缩 manifest，静态资源缓存一年（`DJANGO_STATIC_MAX_AGE` 可覆盖）；
+- 启用 `DJANGO_SECURE_SSL=1` 后开启 HTTPS 跳转、Secure Cookie 与 HSTS；请在反向代理终止 TLS 并确认域名后再开启；
+- `requirements-prod.txt` 在基础依赖上加入 gunicorn；开发环境无需安装；
+- SQLite 适合单机演示；多实例/高并发部署需自行切换数据库并重新评估缓存与限流；
+- 不要在生产运行 `seed_demo`（演示弱口令），也不要提交 `db.sqlite3` 或真实 `.env`。
+
+## 安全说明
+
+- 生产环境缺少 `DJANGO_SECRET_KEY` 直接报错；密钥与数据库文件均不在仓库中；
+- 密码只通过 Django `check_password` 校验哈希，无明文比较路径；
+- 所有用户输入默认转义，资料文本只存纯文本；
+- 评论删除/隐藏、收藏、历史删除均校验所有权；staff 隐藏评论也走 POST + CSRF；
+- 演示数据与账号仅用于展示，请勿使用真实密码或真实用户数据。
+
+## 团队与许可
+
+原课程项目：上海财经大学《数据库原理》2021 Fall 六人小组（熊博雅、张军、安津毅、袁月、谭峰、向怡然）。本仓库由安津毅整理重构。
+
+本项目为课程作品展示，**未添加开源 LICENSE**；未经许可请勿商用。参考产品（读通鉴等）只借鉴产品结构，未复制其文本、图片、数据或品牌。

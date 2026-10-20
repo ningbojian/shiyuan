@@ -1,19 +1,20 @@
-{% extends "surname/base.html" %}
+{% extends "base.html" %}
 {% block title %}项目资料 | 氏源{% endblock %}
 {% block content %}
 <h1>项目资料</h1>
 <div class="panel">
     <p>氏源是一个数据库课程团队项目：以姓氏为核心，组织姓氏起源、文化、人口分布、历代名人和迁徙路径，并通过地图、词云、关系图和时间轴做可视化。</p>
-    <p>本仓库是课程结束后的整理版：保留完整 Django 后端、模板、静态资源和演示数据，并修复了原项目中的硬编码密钥、明文密码比较和外部图片依赖。完整原始数据（300+ 姓氏）没有提交，仓库里只放李、王、张、丁四个示例姓氏。</p>
+    <p>本仓库是课程结束后的整理版：保留 Django 后端、模板、本地静态资源和演示数据，并修复了原项目中的硬编码密钥、明文密码比较、越权接口与外部脚本依赖。完整原始数据（300+ 姓氏）没有提交，当前目录收录 33 个姓氏，其中李、王、张、丁四姓保留课程原始文本。</p>
 </div>
+
+{% include "partials/_source_note.html" with is_demo=True source_note="全部姓氏条目均带 is_demo 标记；分布强度是为可视化生成的示意值，不是人口普查或学术统计结果。" %}
 
 <h2>技术栈</h2>
 <div class="panel">
     <span class="tag">Django 5.2</span>
-    <span class="tag">SQLite / MySQL</span>
-    <span class="tag">ECharts</span>
-    <span class="tag">pyecharts</span>
-    <span class="tag">HTML / CSS / Vue</span>
+    <span class="tag">SQLite</span>
+    <span class="tag">本地 ECharts</span>
+    <span class="tag">HTML / CSS</span>
     <span class="tag">Python 3</span>
 </div>
 
@@ -22,21 +23,31 @@
     <table>
         <tr><th>表</th><th>作用</th></tr>
         <tr><td>surname</td><td>姓氏基本信息、起源、文化、迁徙、人口分布文本</td></tr>
-        <tr><td>province</td><td>省份维度</td></tr>
+        <tr><td>province</td><td>省份维度与地图中心点</td></tr>
         <tr><td>dynasty</td><td>朝代及起止时间</td></tr>
-        <tr><td>distribution</td><td>姓氏 × 省份的人口比例</td></tr>
-        <tr><td>famous</td><td>姓氏 × 朝代的历史名人</td></tr>
-        <tr><td>user / comment</td><td>用户注册登录与评论</td></tr>
+        <tr><td>distribution</td><td>姓氏 × 省份的示意强度（0–100，非占比）</td></tr>
+        <tr><td>famous</td><td>姓氏 × 朝代的历史人物</td></tr>
+        <tr><td>clan / surname_relation</td><td>宗族与姓氏源流关系</td></tr>
+        <tr><td>migration_event</td><td>按朝代排序的迁徙事件</td></tr>
+        <tr><td>auth_user / profile / comment</td><td>账号、资料与评论</td></tr>
+        <tr><td>favorite / reading_history</td><td>收藏与浏览历史</td></tr>
     </table>
 </div>
 
 <h2>主要功能</h2>
 <div class="panel">
     <ul>
-        <li>用户注册、登录、个人中心</li>
-        <li>按姓氏搜索与热门姓氏推荐</li>
-        <li>人口分布地图、历代名人朝代树、词云、姓氏关系图、迁徙路径</li>
-        <li>评论增删改查（课程原型；接口使用 GET，生产环境应改为 POST + CSRF）</li>
+        <li>用户注册、登录、个人中心、密码与资料修改</li>
+        <li>按姓氏、拼音、首字母搜索，热门姓氏推荐</li>
+        <li>人口分布地图、历史人物、词云、姓氏关系图、迁徙时间轴</li>
+        <li>收藏与浏览历史（仅本人可见）</li>
+        <li>评论仅允许登录用户通过 POST + CSRF 提交，删除与隐藏均校验权限</li>
     </ul>
+</div>
+
+<h2>数据来源与再生成</h2>
+<div class="panel">
+    <p>姓氏文本依据课程资料与通行姓氏源流概述整理；演示条目由脚本生成并逐条标注来源说明，不复制参考网站的受版权保护内容。</p>
+    <p>唯一可复现数据源为仓库内 <code>data/catalog.json</code>。重新生成与校验命令见项目文档 <code>docs/DATA.md</code>。</p>
 </div>
 {% endblock %}

@@ -1,83 +1,127 @@
-# 氏源项目说明
+# 氏源项目技术报告
 
-## 背景
+## 1. 背景与目标
 
-氏源是上海财经大学《数据库原理》课程（2021 Fall）的六人小组项目。项目以姓氏文化为主题，把姓氏的起源、文化、人口分布、历史名人和迁徙文本组织成可查询、可比较、可追踪的数据，并通过 Web 页面和图表展示。
+氏源源自上海财经大学《数据库原理》（2021 Fall）六人小组项目，主题是用数据库组织姓氏的源流、人物、迁徙与分布，并通过可视化辅助阅读。2026 年的重构目标是把它从课程原型变成一个**可运行、可测试、可公开展示**的 Django 项目：
 
-课程结束后，安津毅在 2026 年把项目整理成一个可运行的展示仓库：
+- 先修复安全问题与数据丢失，再扩展内容与视觉；
+- 所有资料文本完整保存，默认转义；
+- 数据从唯一的 JSON 文件可复现加载；
+- 关键路径有自动化测试与查询预算；
+- 不依赖外部 CDN，移动端、夜间模式、无障碍与 SEO 达到可发布水平。
 
-- 找回并整理完整的 Django 后端、模板和静态资源；
-- 用 SQLite 提供无需安装 MySQL 的演示路径；
-- 增加四个姓氏的示例数据和可重复执行的 seed 脚本；
-- 移除硬编码密钥、明文密码比较、外部图片依赖和无关文件；
-- 补充 README、API 摘要和截图。
+## 2. 功能范围
 
-## 功能
+| 模块 | 能力 |
+|---|---|
+| 首页 | 搜索、拼音首字母索引、精选姓氏、每日一姓、统计 |
+| 目录与搜索 | 关键词/首字母/省份/排序筛选、分页、空状态、查询参数保留 |
+| 姓氏详情 | TOC、源流、迁徙、分布、人物、文化、来源、评论、收藏、打印/复制 |
+| 可视化 | 分布地图、迁徙时间轴、关系图、词云；懒加载 + 文本替代表 |
+| 人物 | 按朝代/姓氏筛选，人物详情与同朝代人物 |
+| 源流 | 宗族节点与“源出/分支/改姓/同源”关系图 + 表格 |
+| 账号 | 注册/登录/退出、资料与密码修改 |
+| 个人数据 | 收藏、浏览历史（保留最近 50 条）、本人评论管理 |
+| API | `/api/v1/` 只读姓氏、详情、搜索、人物、元数据 |
+| 发布 | sitemap、robots、canonical、OG/Twitter、JSON-LD、404/500 |
 
-1. 用户注册、登录、退出、个人中心；
-2. 姓氏搜索与热门搜索；
-3. 姓氏详情：基本信息、起源、文化、人口分布；
-4. 人口分布地图（ECharts map）；
-5. 历代名人按朝代组织（详情页折叠列表）；
-6. 姓氏词云（ECharts wordCloud）；
-7. 姓氏关系图（ECharts graph）；
-8. 迁徙路径（pyecharts Timeline/Map）；
-9. 评论增删改查（课程原型）。
+不在范围内：支付/真实会员、完整论坛、SPA、离线 App、权威人口统计。
 
-课程报告里提到的“评论/弹幕 + 后台审核”是原始设想；当前仓库实现的是评论 CRUD，没有完整的论坛、后台审核和弹幕流。README 和简历都不应把它写成“论坛”。
-
-## 数据模型
-
-| 表 | 字段/关系 | 说明 |
-|---|---|---|
-| `surname` | `second_name` PK，基本信息/名人/迁徙/分布/起源/文化文本，`father_surname` 自关联 | 姓氏主数据 |
-| `province` | `name` PK | 省份维度 |
-| `dynasty` | `name` PK，`begin`/`end` | 朝代与起止时间 |
-| `distribution` | 姓氏 M2M、省份 M2M、`ratio` | 姓氏 × 省份人口比例 |
-| `famous` | 姓氏 M2M、朝代 M2M、姓名、简介 | 姓氏 × 朝代名人 |
-| `user` | 账号 PK、用户名、姓氏、VIP 信息、密码 hash | 自定义用户 |
-| `comment` | 用户 FK、内容、创建时间 | 评论 |
-
-规范化说明（摘要）：
-
-- 1NF：把名人的朝代、分布等重复属性拆到关系表；
-- 2NF：关系表的主键由姓氏/省份/朝代等组合键构成，非主属性完全依赖主键；
-- 3NF：`surname`、`dynasty`、`distribution`、`famous` 中非主属性不传递依赖主键；
-- BCNF：课程报告说明未完全展开，当前实现按 3NF 组织。
-
-## 架构
+## 3. 架构
 
 ```mermaid
 flowchart LR
-    Browser[浏览器 / Vue + ECharts] --> Django[Django views]
-    Django --> ORM[Django ORM]
-    ORM --> DB[(SQLite 演示 / MySQL 可选)]
-    Django --> Pyecharts[pyecharts 图表片段]
-    Django --> Templates[Django 模板]
-    Templates --> Browser
+    B[浏览器] --> V[Django views]
+    V --> ORM[Django ORM]
+    ORM --> DB[(SQLite)]
+    V --> T[Django 模板]
+    T --> B
+    V --> J[json_script]
+    J --> E[本地 ECharts]
+    W[WhiteNoise] --> B
 ```
 
-- 后端：Django 5.2（项目原为 Django 4.0，整理时升级）；
-- 数据库：默认 SQLite，可改为 MySQL；
-- 可视化：ECharts + pyecharts；
-- 前端：Django 模板 + 少量原生 JS；原 Vue 组件保留在模板结构中但不再依赖外部 CDN。
+- Django 5.2 + 服务端模板 + 原生 JS；无 Node 构建链。
+- `Surname` 负责目录与知识网络，`user` 负责账号、评论、收藏与历史。
+- 静态资源（ECharts、中国地图、词云插件）放在 `static/vendor/`，开发由 runserver 提供，生产由 WhiteNoise 提供。
+- 图表数据通过 `json_script` 从视图传入，模板不拼接 JS 字符串；图表容器提供 `role="img"` 与数据表。
 
-## 复杂度与取舍
+## 4. 数据模型
 
-- 分布图需要遍历省份并取“姓氏 × 省份”的交叉数据；示例数据只有四个姓氏，行数很小。
-- 词云由 `Surname/static/Surname/model/word` 的 pickle 提供（346 个姓氏的权重），整理时保留，缺失时页面降级为空词云。
-- 名人树从 `famous` 关系表按朝代聚合，避免在姓氏主表里存重复的名人列表。
-- 迁徙文本用关键词识别朝代和省份，生成时间轴地图；这是课程项目的简化 NLP，不做实体识别。
+核心表：
 
-## 团队与我的工作
+| 表 | 说明 | 关键约束 |
+|---|---|---|
+| `surname` | 姓氏主数据、长文本、关键词 JSON、演示标记 | `slug` 唯一；首字母 A–Z |
+| `province` | 省份、地图名、中心经纬度 | `name` 主键、`slug` 唯一 |
+| `dynasty` | 朝代与排序 | `name` 主键、`slug` 唯一 |
+| `distribution` | 姓氏 × 省份 | `(surname, province)` 唯一；强度 0–100 |
+| `famous` | 人物 × 姓氏 × 朝代 | 人物 `slug` 唯一；同姓同朝同名唯一 |
+| `clan` | 宗族节点 | `name`/`slug` 唯一 |
+| `surname_relation` | 姓氏→姓氏/宗族关系 | 目标 XOR；重复边校验 |
+| `migration_event` | 迁徙事件 | 按朝代与顺序排序 |
+| `profile` | 内置 User 的扩展资料 | 一对一 |
+| `comment` | 评论 | 用户/姓氏外键、状态、索引 |
+| `favorite` / `reading_history` | 收藏 / 历史 | 用户+姓氏唯一 |
 
-课程报告中的小组成员：熊博雅、张军、安津毅、袁月、谭峰、向怡然。仓库不包含学号和评分材料。
+设计要点：
 
-安津毅在整理版中负责：
+- 用 `ForeignKey` 替代原 M2M 表达“姓氏-省份”“人物-朝代”，消除重复与交集查询；
+- 唯一约束与检查约束把数据完整性放到数据库层；
+- 长文本统一 `TextField`，不再截断；
+- 内置 `auth.User` + `Profile`，避免自定义用户缺失权限体系与迁移风险；
+- `is_demo`、`source_note`、`is_illustrative` 显式标注演示数据。
 
-- 姓氏数据模型、数据导入脚本与演示数据；
-- 用户注册登录、个人中心、评论模块；
-- Django 模板、路由、接口整理；
-- 截图、README、安全清理与可运行性验证。
+## 5. 数据管线
 
-原始项目是团队课程作业；本仓库不代表任何公司或商业产品。
+1. `data/surnames/` 保留李、王、张、丁原始课程文本；
+2. `scripts/generate_catalog.py` 生成/更新 `data/catalog.json`；
+3. `validate_catalog` 检查数量、slug/拼音/首字母唯一、强度范围、引用存在、来源说明、纯文本策略；
+4. `load_catalog` 在事务中按自然键 `update_or_create`，可重复运行；`--dry-run` 不写库；
+5. `seed_demo` 创建省份、朝代、演示账号、评论、收藏与历史，可重复运行。
+
+加载失败不会留下半套数据（`transaction.atomic`）。
+
+## 6. 安全设计
+
+- **认证**：Django 内置 User、密码哈希、登录 session 轮换；登录失败统一提示，不泄露账号是否存在。
+- **CSRF**：所有写操作 POST + CSRF；退出、收藏、评论、历史删除均不暴露 GET 写接口。
+- **对象所有权**：收藏/历史/评论删除按 `request.user` 过滤；staff 隐藏评论仍需 POST。
+- **输出转义**：模板默认转义；资料与评论不使用 `|safe`；JSON-LD 自定义过滤器转义 `<`、`>`、`&`、U+2028/2029。
+- **密钥与配置**：生产缺少 `DJANGO_SECRET_KEY` 直接报错；密钥、数据库、`.dev-secret-key` 均 gitignore。
+- **限流与审计**：登录 5 次/5 分钟（IP+账号），评论 10 条/10 分钟（用户）；记录登录失败/成功、评论删除/隐藏，不记录密码。
+- **安全头**：SameSite Lax、`nosniff`、`X-Frame-Options: DENY`、Referrer-Policy；HTTPS 环境开启 HSTS/Secure Cookie。
+- **反向代理**：仅当 `DJANGO_TRUST_X_FORWARDED_PROTO=1` 时信任 `X-Forwarded-Proto`，使 TLS 终止代理后的跳转、canonical 与 sitemap 使用 https；直连部署保持关闭，避免伪造。
+- **部署检查**：测试在生产环境变量下运行 `check --deploy`，要求零问题。
+
+## 7. 性能
+
+- 列表分页；详情用 `Prefetch`/`select_related` 预取分布、人物、迁徙、关系与评论；
+- 查询预算由测试固定：首页 6、目录 ≤5、详情 ≤16、人物列表 ≤5、人物详情 ≤4；
+- 浏览计数只做一次 `F("view_count") + 1`；
+- ECharts 仅在详情/源流页加载，`IntersectionObserver` 懒初始化，窗口缩放防抖；
+- 生产静态资源使用压缩 manifest 与一年缓存；
+- 未启用整页缓存：页头包含登录态与 CSRF 表单，避免跨用户串页；当前规模下查询预算足够。
+
+## 8. 测试与验收
+
+- 189 个 Django 测试：模型约束、catalog 加载/校验、搜索分页、详情预算、图表 payload、认证/CSRF/IDOR、XSS、收藏/历史、API envelope、SEO、部署检查、反向代理与审计日志配置；
+- `ruff check .` 静态检查；
+- Lighthouse Accessibility 5 页 1.00；375/768/1440 px 无横向溢出；图表在夜间模式正确重绘；
+- GitHub Actions 跑 `check`、`test`、`ruff` 与生产 `collectstatic`；
+- 详见 [`QA.md`](QA.md)。
+
+## 9. 已知限制
+
+- SQLite 单机演示，不承诺多实例并发；
+- 数据为课程演示整理，分布强度不是统计值；
+- 评论无分页；搜索为 `icontains`，未上全文索引；
+- API 只读且未加认证/限流；
+- 未实现邮箱验证与找回密码；
+- 部署文档给出 gunicorn + WhiteNoise 路径，未附带 Docker/云平台配置。
+
+## 10. 团队与许可
+
+原课程项目：上海财经大学《数据库原理》2021 Fall 六人小组（熊博雅、张军、安津毅、袁月、谭峰、向怡然）。本仓库由安津毅整理重构。
+
+课程作品展示用途，未添加开源 LICENSE；未经许可请勿商用。参考产品仅借鉴信息架构，未复制文本、图片、数据或品牌。

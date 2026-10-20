@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}氏源 · 查找姓氏，读一段来处{% endblock %}
+{% block meta_description %}氏源收录 33 个姓氏的源流、人物、迁徙与分布资料。按姓氏、拼音或首字母检索，读一段中国人的来处。{% endblock %}
+{% block content %}
+<section class="hero">
+    <p class="eyebrow">读姓氏 · 知来处</p>
+    <h1>查找姓氏</h1>
+    <p class="lede">从一个字出发，看它的源流、人物、迁徙与分布。当前收录 {{ stats.surnames }} 个姓氏，全部为课程演示整理资料。</p>
+    <form class="search-form" action="{% url 'Surname:search' %}" method="get" role="search">
+        <label class="visually-hidden" for="home-q">姓氏、拼音或首字母</label>
+        <input id="home-q" type="search" name="q" placeholder="输入姓氏、拼音或首字母，如：李 / li / L" autocomplete="off">
+        <button type="submit">查找</button>
+    </form>
+</section>
+
+<section aria-labelledby="letters-title">
+    <div class="section-head">
+        <h2 id="letters-title">按拼音首字母</h2>
+        <a href="{% url 'Surname:list' %}">浏览全部</a>
+    </div>
+    <ul class="letter-strip">
+        {% for item in initials %}
+        <li>
+            {% if item.count %}
+                <a href="{% url 'Surname:search' %}?initial={{ item.letter }}">{{ item.letter }}<span>{{ item.count }}</span></a>
+            {% else %}
+                <span aria-disabled="true">{{ item.letter }}</span>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+
+<section class="home-columns">
+    <div>
+        <div class="section-head">
+            <h2>精选姓氏</h2>
+            <a href="{% url 'Surname:list' %}">查看全部</a>
+        </div>
+        {% if featured %}
+            <ul class="card-grid">
+                {% for surname in featured %}
+                <li>
+                    <a class="surname-card" href="{% url 'Surname:detail' surname.slug %}">
+                        <span class="name">{{ surname.second_name }}</span>
+                        <span class="meta">{{ surname.pinyin }}{% if surname.initial %} · {{ surname.initial }}{% endif %}</span>
+                        {% if surname.summary %}<span class="card-summary">{{ surname.summary|truncatechars:64 }}</span>{% endif %}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            {% include "partials/_empty_state.html" with title="还没有精选姓氏" description="运行 seed_demo 生成演示目录后再来看看。" %}
+        {% endif %}
+    </div>
+
+    <aside class="daily-card" aria-labelledby="daily-title">
+        <p class="eyebrow">每日一读</p>
+        <h2 id="daily-title">今日一姓</h2>
+        {% if daily %}
+            <p class="daily-name">{{ daily.second_name }}</p>
+            <p class="daily-pinyin">{{ daily.pinyin }}{% if daily.initial %} · {{ daily.initial }}{% endif %}</p>
+            {% if daily.summary %}<p>{{ daily.summary }}</p>{% endif %}
+            <a class="btn" href="{% url 'Surname:detail' daily.slug %}">读 {{ daily.second_name }} 姓</a>
+        {% else %}
+            <p class="muted">目录为空，暂无今日姓氏。</p>
+        {% endif %}
+    </aside>
+</section>
+
+<section aria-labelledby="stats-title">
+    <div class="section-head">
+        <h2 id="stats-title">站点一览</h2>
+    </div>
+    <dl class="stats-row">
+        <div><dt>姓氏</dt><dd>{{ stats.surnames }}</dd></div>
+        <div><dt>历史人物</dt><dd>{{ stats.figures }}</dd></div>
+        <div><dt>省级行政区</dt><dd>{{ stats.provinces }}</dd></div>
+    </dl>
+    <p class="muted">演示数据 · 非权威统计。分布强度仅用于可视化，不代表人口占比。</p>
+</section>
+{% endblock %}
