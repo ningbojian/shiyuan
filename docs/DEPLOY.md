@@ -138,7 +138,7 @@ curl -sSI https://<pa-user>.pythonanywhere.com/ | grep -Ei 'x-content-type|x-fra
 curl -sS https://<pa-user>.pythonanywhere.com/ | grep -o 'rel="canonical" href="[^"]*"'
 ```
 
-默认 `DJANGO_SECURE_SSL=0` 时 canonical 可能是 `http://`，也没有 HSTS/Secure Cookie；这是平台 HTTPS 模式的已知取舍，记录即可。
+实测平台默认环境下 canonical 已为 `https://`；由于 `DJANGO_SECURE_SSL=0`，仍没有 HSTS/Secure Cookie，这是平台 HTTPS 模式的已知取舍。若要补齐这两项，再做下面的可选实验。
 
 浏览器走查：
 
@@ -228,6 +228,7 @@ cp ~/backups/db-<timestamp>.sqlite3 ~/shiyuan/db.sqlite3
 | 400 Bad Request | `DJANGO_ALLOWED_HOSTS` 是否包含 `<pa-user>.pythonanywhere.com`；是否多/少了空格 |
 | 403 CSRF | `DJANGO_CSRF_TRUSTED_ORIGINS` 是否为 `https://<pa-user>.pythonanywhere.com`；Force HTTPS 是否开启 |
 | 页面无样式 / 静态 404 | `collectstatic --noinput` 是否执行；`/static/` → `/home/<pa-user>/shiyuan/staticfiles` 映射是否正确 |
+| 所有 HTML 500，但 API/sitemap/robots 200 | 通常是未执行 `collectstatic`，模板里的 `{% static %}` 找不到 manifest；运行 `collectstatic --noinput` 后点 Reload |
 | 重定向循环 | 把 `DJANGO_SECURE_SSL` 与 `DJANGO_TRUST_X_FORWARDED_PROTO` 都设为 `0`，Reload，用无痕窗口重试 |
 | 页面显示旧内容 | Web tab Reload；确认 `git log` 是预期 commit；清浏览器缓存 |
 | 到期后站点停用 | Web tab 点 “Run until 1 month from today” 续期 |

@@ -1,10 +1,10 @@
 # 项目状态
 
-最后更新：2026-10-20
+最后更新：2026-10-21
 
 ## 当前阶段
 
-**Phase 7 完成：课程原始数据已入库；Phase 6 部署文档已完成，等待实际部署。** 348 个姓氏、6,251 位人物已在本地库验证；升级代码已提交到 `feature/shiyuan-upgrade`，下一步按 `docs/DEPLOY.md` 在 PythonAnywhere 部署并做公网验收。
+**Phase 6 完成：站点已部署到 <https://ningbojian.pythonanywhere.com/>。** 348 个姓氏、6,251 位人物已加载到服务器 SQLite；API、sitemap、静态资源、账号流程与持久化均已完成公网验收。
 
 ## 已完成
 
@@ -15,7 +15,7 @@
 | Phase 3 | 纸墨设计系统、首页/目录/搜索、详情 TOC、四类本地 ECharts + 文本替代表、静态页收口、移动端/夜间模式 | 完成 |
 | Phase 4 | 人物索引与详情、源流关系图、收藏/历史（保留 50 条）、个人中心、只读 API v1、登录/评论限流与审计日志 | 完成 |
 | Phase 5 | 部署检查、静态长缓存、sitemap/robots/canonical/OG/JSON-LD、404/500、无障碍与响应式验收、README/QA/项目状态、CI collectstatic | 完成 |
-| Phase 6 | PythonAnywhere 免费部署模板、部署文档、合并 main、公网验收 | 文档完成，待部署 |
+| Phase 6 | PythonAnywhere 免费部署、HTTPS、公网验收、备份与运维文档 | 完成 |
 | Phase 7 | 课程归档解析器、315 个原始条目、6,251 位人物、`is_imported` 来源标记与原始资料 UI、22 个时期 | 完成 |
 
 ## 当前验证结果
@@ -28,6 +28,15 @@
 - 响应式：375/768/1440 px 共 18 次检查无横向溢出；
 - 最终独立审查：0 Critical；4 Important（反向代理 HTTPS、生产 gunicorn、审计日志、关键词空状态）已修复并由测试钉住；11 Minor 记录为后续优化；
 - 数据规模：348 姓氏（33 整理 + 315 课程原始资料）/ 6,251 人物 / 66 迁徙事件 / 36 源流关系 / 10 宗族 / 22 个时期。
+
+## 公网部署（2026-10-21）
+
+- **在线地址**：<https://ningbojian.pythonanywhere.com/>
+- **平台**：PythonAnywhere 免费版；1 个 web app / 1 个 worker / 512 MiB 持久磁盘；平台 Force HTTPS 已开启；**web app 需每月在 Web tab 点 “Run until 1 month from today” 续期**。
+- **数据**：服务器 SQLite `~/shiyuan/db.sqlite3`；首次部署执行 `seed_demo --force` 加载 348 姓氏 / 6,251 人物；演示账号密码已轮换，管理员账号已创建（密码不在仓库与文档中）。
+- **HTTPS 模式**：`DJANGO_SECURE_SSL=0`、`DJANGO_TRUST_X_FORWARDED_PROTO=0`，由平台负责 HTTP → HTTPS 跳转；实测 canonical 已为 `https://`。未开启 HSTS/Secure Cookie，属于平台 HTTPS 模式的已知取舍。
+- **已验收**：HTML/API/sitemap/robots/静态资源 200；`total=348`；sitemap 6,608 个 URL；404、旧链接 302、GET 退出 405、匿名收藏 403；注册/登录/收藏/历史/评论/改密/退出、管理员隐藏评论、Reload 后评论持久化、移动端与夜间模式均通过。
+- **备份**：服务器 `~/backups/`（SQLite backup API），更新前先备份；代码回滚使用 git commit/tag。
 
 ```bash
 DJANGO_DEBUG=1 python manage.py test -v 2
@@ -66,5 +75,5 @@ DJANGO_DEBUG=1 python manage.py check
 - [x] 无外部 CDN/字体/图表依赖；
 - [x] 404/500 模板与 robots/sitemap；
 - [x] README、API、DATA、QA、项目报告一致；
-- [ ] PythonAnywhere 部署、HTTPS 与备份策略（Phase 6）；
-- [ ] 公网验收后记录在线 URL 与部署日期。
+- [x] PythonAnywhere 部署、HTTPS 与备份策略（Phase 6）；
+- [x] 公网验收后记录在线 URL 与部署日期。

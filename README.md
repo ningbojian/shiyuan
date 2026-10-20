@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/ningbojian/shiyuan/actions/workflows/ci.yml/badge.svg)](https://github.com/ningbojian/shiyuan/actions/workflows/ci.yml)
 
+**在线演示：** <https://ningbojian.pythonanywhere.com/>（PythonAnywhere 免费版，部署步骤见 [`docs/DEPLOY.md`](docs/DEPLOY.md)）
+
 > 查一个姓氏，读它的源流、人物、迁徙与分布。  
 > 课程项目的重构版：Django 5.2 + SQLite + 本地 ECharts，348 个姓氏的阅读型目录站。
 
