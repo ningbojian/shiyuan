@@ -189,8 +189,11 @@ python scripts/generate_catalog.py
 - 无障碍与响应式：[`docs/QA.md`](docs/QA.md)
 - 项目状态与后续计划：[`PROJECT_STATE.md`](PROJECT_STATE.md)
 - 课程背景与技术报告：[`docs/PROJECT_REPORT.md`](docs/PROJECT_REPORT.md)
+- 免费公网部署：[`docs/DEPLOY.md`](docs/DEPLOY.md)（PythonAnywhere）
 
-生产部署最小步骤（Linux + gunicorn 示例）：
+**GitHub Pages 不能运行 Django**：它只托管静态文件，登录、评论、收藏、历史和 API 都需要 Python 进程与数据库。完整功能的免费部署见 [`docs/DEPLOY.md`](docs/DEPLOY.md)。
+
+VPS + gunicorn 示例（PythonAnywhere 见 [`docs/DEPLOY.md`](docs/DEPLOY.md)）：
 
 ```bash
 pip install -r requirements-prod.txt

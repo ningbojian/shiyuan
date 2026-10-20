@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-**Phase 7 完成：课程原始数据已入库；Phase 6 公网部署待执行。** 348 个姓氏、6,251 位人物已在本地库验证；升级代码已提交到 `feature/shiyuan-upgrade`，下一步是 PythonAnywhere 部署与公网验收。
+**Phase 7 完成：课程原始数据已入库；Phase 6 部署文档已完成，等待实际部署。** 348 个姓氏、6,251 位人物已在本地库验证；升级代码已提交到 `feature/shiyuan-upgrade`，下一步按 `docs/DEPLOY.md` 在 PythonAnywhere 部署并做公网验收。
 
 ## 已完成
 
@@ -15,7 +15,7 @@
 | Phase 3 | 纸墨设计系统、首页/目录/搜索、详情 TOC、四类本地 ECharts + 文本替代表、静态页收口、移动端/夜间模式 | 完成 |
 | Phase 4 | 人物索引与详情、源流关系图、收藏/历史（保留 50 条）、个人中心、只读 API v1、登录/评论限流与审计日志 | 完成 |
 | Phase 5 | 部署检查、静态长缓存、sitemap/robots/canonical/OG/JSON-LD、404/500、无障碍与响应式验收、README/QA/项目状态、CI collectstatic | 完成 |
-| Phase 6 | PythonAnywhere 免费部署模板、部署文档、合并 main、公网验收 | 部署中 |
+| Phase 6 | PythonAnywhere 免费部署模板、部署文档、合并 main、公网验收 | 文档完成，待部署 |
 | Phase 7 | 课程归档解析器、315 个原始条目、6,251 位人物、`is_imported` 来源标记与原始资料 UI、22 个时期 | 完成 |
 
 ## 当前验证结果
