@@ -106,7 +106,7 @@ flowchart LR
 
 ## 8. 测试与验收
 
-- 219 个 Django 测试：模型约束、catalog 加载/校验、课程归档解析与 348/6,251 数据契约、搜索分页、详情预算、图表 payload、认证/CSRF/IDOR、XSS、收藏/历史、API envelope、SEO、部署检查、反向代理与审计日志配置；
+- 222 个 Django 测试：模型约束、catalog 加载/校验、课程归档解析与 348/6,251 数据契约、搜索分页、详情预算、图表 payload、认证/CSRF/IDOR、XSS、收藏/历史、API envelope、SEO、部署检查、反向代理与审计日志配置；
 - `ruff check .` 静态检查；
 - Lighthouse Accessibility 5 页 1.00；375/768/1440 px 无横向溢出；图表在夜间模式正确重绘；
 - GitHub Actions 跑 `check`、`test`、`ruff` 与生产 `collectstatic`；

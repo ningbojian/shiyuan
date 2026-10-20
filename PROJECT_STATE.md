@@ -20,7 +20,7 @@
 
 ## 当前验证结果
 
-- 自动化测试：219 个，全部通过（最终验收命令见下）；
+- 自动化测试：222 个，全部通过（最终验收命令见下）；
 - `ruff check .`：通过；
 - `python manage.py check --deploy`（生产环境变量 + `DJANGO_SECURE_SSL=1`）：无问题；
 - `collectstatic --noinput`（生产 manifest storage）：通过；

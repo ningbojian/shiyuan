@@ -147,6 +147,9 @@ class Distribution(models.Model):
         return f"{self.surname} · {self.province}"
 
 
+IMPORTED_SOURCE_MARKER = "课程原始资料"
+
+
 class Famous(models.Model):
     surname = models.ForeignKey(
         SecondName, on_delete=models.CASCADE, related_name="figures"
@@ -180,6 +183,10 @@ class Famous(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def is_imported_source(self) -> bool:
+        return (self.source_note or "").startswith(IMPORTED_SOURCE_MARKER)
 
     def save(self, *args, **kwargs):
         if not self.slug:

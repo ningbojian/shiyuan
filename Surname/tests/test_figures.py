@@ -80,6 +80,10 @@ class FigureListTests(TestCase):
         self.assertEqual(len(response.context["page_obj"].object_list), 24)
         self.assertTrue(response.context["page_obj"].has_next())
 
+    def test_list_acknowledges_raw_materials(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "课程原始资料")
+
 
 class FigureDetailTests(TestCase):
     def setUp(self):
@@ -129,6 +133,25 @@ class FigureDetailTests(TestCase):
             response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertLessEqual(len(queries), 4)
+
+    def test_imported_figure_shows_raw_source_badge(self):
+        Famous.objects.create(
+            surname=self.li,
+            dynasty=self.tang,
+            name="李冰",
+            slug="li-bing",
+            info="战国水利家。",
+            source_note="课程原始资料《历代名人.txt》（未校订）。",
+        )
+        response = self.client.get(
+            reverse("Surname:figure_detail", args=["li-bing"])
+        )
+        self.assertContains(response, "课程原始资料 · 未校订")
+        self.assertNotContains(response, "演示数据 · 内容为课程展示整理")
+
+    def test_curated_figure_shows_demo_badge(self):
+        response = self.client.get(self.url)
+        self.assertContains(response, "演示数据 · 内容为课程展示整理")
 
 
 class FigureNavTests(TestCase):

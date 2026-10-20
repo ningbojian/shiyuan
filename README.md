@@ -139,7 +139,7 @@ ruff check .
 DJANGO_DEBUG=1 python manage.py check
 ```
 
-- 219 个 Django 测试，覆盖模型约束、目录加载/校验、课程归档解析、搜索分页、认证与 CSRF/IDOR、评论 XSS、收藏/历史、API、SEO 与部署配置；
+- 222 个 Django 测试，覆盖模型约束、目录加载/校验、课程归档解析、搜索分页、认证与 CSRF/IDOR、评论 XSS、收藏/历史、API、SEO 与部署配置；
 - 查询预算：首页 6 条、目录 ≤ 5 条、详情 ≤ 16 条、人物列表 ≤ 5 条；
 - Lighthouse 无障碍 1.00（5 个页面），375/768/1440 px 无横向溢出；
 - GitHub Actions 执行 `check`、`test`、`ruff` 与生产模式 `collectstatic`。

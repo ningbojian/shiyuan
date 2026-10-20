@@ -44,7 +44,9 @@
             <tr><th scope="row">生卒</th><td>{{ figure.birth_year|default:"?" }}—{{ figure.death_year|default:"?" }}</td></tr>
         </tbody>
     </table>
-    {% if figure.is_demo %}
+    {% if figure.is_imported_source %}
+        <p class="muted">课程原始资料 · 未校订，以原文为准。</p>
+    {% elif figure.is_demo %}
         <p class="muted">演示数据 · 内容为课程展示整理，非权威传记。</p>
     {% endif %}
     {% if figure.source_note %}<p class="muted">{{ figure.source_note }}</p>{% endif %}
