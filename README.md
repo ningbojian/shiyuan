@@ -1,4 +1,13 @@
 # 氏源 · 姓氏阅读与可视化
+<!-- profile-agent:readme:start -->
+氏源 · 姓氏阅读与可视化：查一个姓氏，读它的源流、人物、迁徙与分布——Django 5.2 + SQLite + 本地 ECharts 的阅读型目录站，收录 348 个姓氏、6,251 位历史人物。
+
+- **可复现数据**：`data/catalog.json` 是唯一数据源，由 `load_catalog` / `validate_catalog` 管理命令校验并加载，源目录不随仓库提交。
+- **可视化阅读**：分布地图、迁徙时间轴、姓氏关系图与词云，全部使用仓库内本地 ECharts 并懒加载，每张图附 `<details>` 数据表作为文本替代。
+- **只读 API 与 SEO**：`/api/v1` JSON 接口、`sitemap.xml`、`robots.txt`、canonical 与 WebPage/Person JSON-LD，文档见 [`docs/API.md`](docs/API.md)。
+- **账号与安全**：注册登录、评论、收藏、浏览历史，写操作均为 POST + CSRF 并校验对象归属，附登录与评论限流。
+- **质量保障**：222 个 Django 测试 + ruff + 生产模式 `collectstatic` 在 GitHub Actions 中运行；Lighthouse 无障碍 1.00，375/768/1440 px 无横向溢出。
+<!-- profile-agent:readme:end -->
 
 [![CI](https://github.com/ningbojian/shiyuan/actions/workflows/ci.yml/badge.svg)](https://github.com/ningbojian/shiyuan/actions/workflows/ci.yml)
 
